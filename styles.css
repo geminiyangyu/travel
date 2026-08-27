@@ -4916,3 +4916,234 @@ body.template-fourfold .check-item input[type="checkbox"] {
 .info-column:first-child > .info-lead-title:first-child {
     display: none;
 }
+
+/* ==========================================================================
+   手機版面修正 (Mobile — 單欄連續捲動)
+   --------------------------------------------------------------------------
+   目的：讓手冊在手機上就是「一路往下滑」的單欄長頁，不要模擬 A4 紙張。
+
+   為什麼需要這一整塊：
+   「手冊預覽模式」(body.booklet-preview) 是為了在電腦上預覽列印效果，
+   會把每一頁鎖成固定的紙張尺寸（依版型不同為 A4 / A5 / 四折）：
+       width: 148.5mm ~ 297mm; height: 210mm ~ 297mm; overflow: hidden;
+   在 390px 寬的手機上，這代表：
+     1. 頁面比螢幕寬 → 文字被縮到很小、右側被切掉
+     2. 每頁強制固定高度 → 封面下方出現一大片空白
+     3. overflow:hidden → 超出紙張高度的內容「直接被裁掉看不到」（最嚴重）
+
+   ⚠️ 選擇器為什麼要寫這麼長：
+   各版型的紙張規則是 `body.template-xxx.booklet-preview .book-page { ... !important }`，
+   優先權比單純的 `body.booklet-preview .book-page` 高。同樣是 !important 時
+   比的是「具體程度」，所以這裡必須把四種版型都列出來、並在前面多加一個 `html`
+   才蓋得過去。改動只在 max-width:768px 生效，電腦上的列印預覽完全不受影響。
+   ========================================================================== */
+
+@media screen and (max-width: 768px) {
+
+    /* --- 1. 解除所有紙張尺寸限制，改成內容多高就多高的單欄 --- */
+    html body.booklet-preview .book-page,
+    html body.template-compact.booklet-preview .book-page,
+    html body.template-detailed.booklet-preview .book-page,
+    html body.template-text-heavy.booklet-preview .book-page,
+    html body.template-fourfold.booklet-preview .book-page,
+    html body.template-detailed.booklet-preview #page-cards,
+    html body.template-detailed.booklet-preview #page-packing,
+    html body.template-fourfold.booklet-preview #page-cards,
+    html body.template-fourfold.booklet-preview #page-packing {
+        display: block !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;          /* 關鍵：不再裁掉內容 */
+        box-sizing: border-box !important;
+        padding: 22px 16px !important;
+        margin: 0 0 14px !important;
+        border: none !important;
+        border-radius: 14px !important;
+        box-shadow: 0 2px 14px rgba(0, 0, 0, .18) !important;
+        justify-content: flex-start !important;
+    }
+
+    /* 四折版的分隔虛線在手機上沒有意義 */
+    html body.template-fourfold.booklet-preview .book-page,
+    html body.template-detailed.booklet-preview .day-page-detailed-a,
+    html body.template-detailed.booklet-preview .day-page-detailed-b {
+        border-right: none !important;
+        border-left: none !important;
+    }
+
+    /* 內層容器同樣不要被撐成整頁高，否則又會出現大片空白 */
+    html body.booklet-preview .day-layout,
+    html body.booklet-preview .cover-layout,
+    html body.booklet-preview .book-page > * {
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        justify-content: flex-start !important;
+    }
+
+    /* 版型容器改成單純的直向堆疊 */
+    html body.booklet-preview .book-pages,
+    html body.template-detailed.booklet-preview .book-pages,
+    html body.template-fourfold.booklet-preview .book-pages {
+        display: block !important;
+        padding: 0 !important;
+        gap: 0 !important;
+    }
+
+    /* 手機上沒有「頁」的概念，拿掉 PAGE BREAK 標記 */
+    html body.booklet-preview .book-page::after,
+    html body.template-fourfold.booklet-preview .book-page::after {
+        content: none !important;
+    }
+
+    body.booklet-preview .content {
+        max-width: 100% !important;
+        padding: 10px 10px 40px !important;
+    }
+
+    /* 預覽模式的深灰背景在手機上讓整頁看起來髒，改回正常紙色 */
+    body.booklet-preview {
+        background-color: #f3efe7 !important;
+    }
+
+    /* --- 2. 頂部導覽：改成可左右滑動的一列，不要擠成一團 --- */
+    .sidebar {
+        padding: 10px 0 8px !important;
+    }
+
+    .sidebar-brand {
+        padding: 0 14px 8px !important;
+    }
+
+    .sidebar-menu {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        gap: 6px !important;
+        padding: 0 12px 6px !important;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .sidebar-menu::-webkit-scrollbar { display: none; }
+
+    /* HTML 內嵌樣式把每日行程寫死成直排，這裡用 !important 蓋掉，
+       讓 D1、D2、D3… 跟其他項目排成同一列 */
+    #dynamic-day-nav,
+    #dynamic-info-nav,
+    #dynamic-custom-nav {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 6px !important;
+        margin-bottom: 0 !important;
+    }
+
+    /* 選單項目不要被拉伸成長條（原本封面那格會變成一個橘色長方塊） */
+    .sidebar-menu .nav-item {
+        flex: 0 0 auto !important;
+        align-self: center !important;
+        white-space: nowrap !important;
+        padding: 8px 12px !important;
+        font-size: 13px !important;
+        border-radius: 999px !important;
+        min-height: 0 !important;
+    }
+
+    /* 手機上圖示省略，讓文字放得下 */
+    .sidebar-menu .nav-item svg { display: none !important; }
+
+    /* --- 3. 隱藏手機上用不到的列印相關功能 --- */
+    .nav-separator,
+    #btn-add-stamp-page,
+    #btn-add-notes-page,
+    #btn-imposition,
+    #btn-print,
+    .view-mode-indicator {
+        display: none !important;
+    }
+
+    .sidebar-actions {
+        padding: 8px 14px 0 !important;
+        gap: 8px !important;
+    }
+
+    /* --- 4. 控制列（切換手冊 / 登出 / 更新）緊湊一點 --- */
+    .top-info {
+        padding: 10px 12px !important;
+        gap: 8px !important;
+    }
+
+    .handbook-manager {
+        gap: 6px !important;
+    }
+
+    .handbook-manager .action-btn,
+    .handbook-manager select {
+        font-size: 13px !important;
+        padding: 7px 10px !important;
+    }
+
+    /* --- 5. 內容本身的可讀性 --- */
+    .book-page img,
+    .day-image img,
+    .cover-art {
+        max-width: 100% !important;
+        height: auto !important;
+    }
+
+    /* 表格類的寬內容改成可單獨左右滑，不要撐爆整頁 */
+    .expense-table-wrap,
+    .table-scroll,
+    .info-table-wrap {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* --- 6. 拿掉 A4 對折參考線（.book-page::before 是一條整頁高的虛線，
+           在電腦上用來標示裝訂折線，手機上只會變成一條莫名其妙的直線） --- */
+    html body.booklet-preview .book-page::before,
+    html body.template-detailed.booklet-preview .book-page::before,
+    html body.template-fourfold.booklet-preview .book-page::before {
+        content: none !important;
+        display: none !important;
+    }
+
+    /* --- 7. 雙欄格線在手機上一律改單欄，避免文字被擠成一行兩三個字 --- */
+    html body.booklet-preview .packing-grid,
+    html body.booklet-preview .flight-grid,
+    html body.booklet-preview .cards-grid,
+    html body.booklet-preview .day-top-grid,
+    html body.booklet-preview .cover-meta,
+    .packing-grid,
+    .flight-grid,
+    .cards-grid,
+    .day-top-grid,
+    .cover-meta {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    /* 行李清單在 detailed / fourfold 版型有更高優先權的雙欄規則，一併蓋掉 */
+    html body.template-detailed.booklet-preview #page-packing .packing-grid,
+    html body.template-detailed #page-packing.active .packing-grid,
+    html body.template-fourfold.booklet-preview .packing-grid,
+    html body.template-fourfold .packing-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    /* 相片牆維持兩欄就好，四欄在手機上每張只剩指甲大小 */
+    html body.booklet-preview .day-gallery-grid,
+    .day-gallery-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    body {
+        overflow-x: hidden !important;
+    }
+}
