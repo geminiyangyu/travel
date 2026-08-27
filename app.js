@@ -248,7 +248,7 @@ function __travelAppMain() {
                     <div class="timeline-node"></div>
                     <div class="timeline-desc">
                         <h5>${item.title}</h5>
-                        <p>${item.desc}</p>
+                        <p>${highlightKeywords(item.desc)}</p>
                     </div>
                 </div>
                 ${ti < (day.timeline || []).length - 1 ? `
@@ -426,8 +426,14 @@ function __travelAppMain() {
             }
         });
 
+        // --- 行程簡介（目錄）---
+        renderTocPage(book);
+
         // --- 旅遊資訊頁動態生成（排在每日行程之後）---
         renderInfoPages(book);
+
+        // --- 封底 ---
+        renderBackCover(book);
 
         // --- 自訂加頁動態生成 (V4.8) ---
         const dynamicCustomNav = document.getElementById('dynamic-custom-nav');
@@ -493,6 +499,9 @@ function __travelAppMain() {
 
         // 重新綁定動態生成的 Nav 項目事件
         bindDynamicNavEvents();
+
+        // 頁碼：DOM 順序就是閱讀順序，封面與封底不編號
+        numberPages();
 
         // 頁面剛被重建，拼版的 order 與補白頁要重算
         if (typeof applyImposition === 'function') applyImposition();
@@ -606,9 +615,9 @@ function __travelAppMain() {
     //   雙頁詳細版：刷卡頁是橫式雙欄，表格獨佔右欄整條 → 21 列
     //   四折頁口袋版：刷卡頁只是一個窄摺頁，表格整個超出紙外 → 不列印
     const EXPENSE_PRINT_ROWS_BY_TEMPLATE = {
-        'compact': 11,
-        'detailed': 20,
-        'text-heavy': 11,
+        'compact': 10,
+        'detailed': 19,
+        'text-heavy': 10,
         'fourfold': 0,
     };
     const EXPENSE_MIN_ROWS = 21;   // 網頁上一律先給滿 21 列可以打字
@@ -617,7 +626,7 @@ function __travelAppMain() {
         const book = getCurrentHandbook();
         const tpl = (book && book.template) || 'compact';
         const n = EXPENSE_PRINT_ROWS_BY_TEMPLATE[tpl];
-        return typeof n === 'number' ? n : 11;
+        return typeof n === 'number' ? n : 10;
     }
 
     function normalizeExpenses(book) {
@@ -2043,7 +2052,9 @@ function __travelAppMain() {
                         cols2.push(cur);
                         cur = [];
                         used = 0;
-                        i--;            // 退回去重新處理那個標題
+                        // 要「重新處理被退回的那個標題」。for 迴圈結尾會 i++，
+                        // 所以必須退兩格；只退一格會與 i++ 抵銷，標題被跳過而消失。
+                        i -= 2;
                         continue;
                     }
                     cols2.push(cur);
@@ -2527,6 +2538,117 @@ function __travelAppMain() {
             applyImposition();
         });
         syncImposeBtn();
+    }
+
+
+    // ==========================================================================
+    // 14. 行程簡介（目錄）、封底、關鍵字強調、頁碼
+    // ==========================================================================
+
+    const TOC_COLORS = [
+        '#E8A0A0', '#F0B98D', '#E9DC8B', '#A8D5A2', '#9FC7E8',
+        '#B9AEDD', '#F2B5D4', '#8FD3D0', '#F5C77E', '#B8D98D',
+    ];
+
+    function renderTocPage(book) {
+        const box = document.getElementById('dynamic-toc-page');
+        if (!box) return;
+        box.innerHTML = '';
+
+        const days = book.days || [];
+        const sec = document.createElement('section');
+        sec.id = 'page-toc';
+        sec.className = 'book-page toc-page';
+        sec.setAttribute('data-tab', '行程簡介');
+
+        if (!days.length) {
+            // 空白手冊也要有這一頁，否則側邊導覽會指到不存在的頁面
+            sec.innerHTML = `
+                <div class="page-header-container">
+                    <h2 class="page-title">📍 行程簡介</h2>
+                </div>
+                <p class="page-description">還沒有行程。在「編輯內容」加入每日行程後，這裡會自動整理成一頁總覽。</p>`;
+            box.appendChild(sec);
+            return;
+        }
+
+        const cards = days.map((day, i) => {
+            const color = TOC_COLORS[i % TOC_COLORS.length];
+            const stops = (day.timeline || []).map(t => {
+                // 站名常寫成「第一站: 新宿御苑」，目錄只留地點本身
+                const name = String(t.title || '').replace(/^\s*第[一二三四五六七八九十\d]+站\s*[:：]\s*/, '');
+                return `<li class="toc-stop">${escapeHtml(name)}</li>`;
+            }).join('');
+            return `
+                <div class="toc-day">
+                    <div class="toc-date" style="background-color:${color}">${escapeHtml(day.dateText || day.dayNum || `D${i + 1}`)}</div>
+                    <ul class="toc-stops">${stops}</ul>
+                </div>`;
+        }).join('');
+
+        sec.innerHTML = `
+            <div class="page-header-container">
+                <h2 class="page-title">📍 行程簡介</h2>
+            </div>
+            <div class="toc-grid">${cards}</div>`;
+        box.appendChild(sec);
+    }
+
+    function renderBackCover(book) {
+        const box = document.getElementById('dynamic-backcover');
+        if (!box) return;
+        box.innerHTML = '';
+
+        const mascotKey = book.mascot || 'dog';
+        const sec = document.createElement('section');
+        sec.id = 'page-backcover';
+        sec.className = 'book-page backcover-page';
+        sec.innerHTML = `
+            <div class="backcover-layout">
+                <div class="backcover-art">
+                    <img src="assetsnew/${mascotKey}_cover.jpg" alt=""
+                         onerror="this.onerror=null;this.src='assets/${mascotKey}_day1.jpg';">
+                </div>
+                <div class="backcover-words">
+                    <div class="backcover-line">旅程的最後，謝謝一路同行。</div>
+                    <div class="backcover-sub">${escapeHtml(book.title || '旅行手冊')}</div>
+                    <div class="backcover-date">${escapeHtml(book.dates || '')}</div>
+                </div>
+                <div class="backcover-foot">See you next trip ✈</div>
+            </div>`;
+        box.appendChild(sec);
+    }
+
+    // 關鍵字強調：走在路上快速掃視時，均勻的內文很難一眼抓到重點。
+    // 只套在「非可編輯」的內文（景點簡介）——可編輯欄位若插入標記元素，
+    // 使用者一編輯就會把 HTML 標籤吃成純文字。
+    const KEYWORDS = [
+        '必吃', '必拍', '必買', '必訪', '預約', '訂位', '限定', '最佳',
+        '推薦', '免費', '注意', '記得', '務必', '提早', '公休',
+    ];
+    const KEYWORD_RE = new RegExp(`(${KEYWORDS.join('|')})`, 'g');
+
+    function highlightKeywords(text) {
+        let out = escapeHtml(text == null ? '' : text);
+        out = out.replace(/\*\*([^*]+)\*\*/g, '<strong class="kw-strong">$1</strong>');
+        out = out.replace(KEYWORD_RE, '<mark class="kw">$1</mark>');
+        return out;
+    }
+
+    // 頁碼。用 JS 標而不是 CSS counter，是因為 .book-page::after 已經被
+    // 「PAGE BREAK」預覽標籤與拼版摺線記號用掉了，再疊上去會打架。
+    function numberPages() {
+        document.querySelectorAll('.page-no').forEach(el => el.remove());
+        let n = 0;
+        document.querySelectorAll('.book-page').forEach(sec => {
+            if (sec.id === 'page-cover' || sec.id === 'page-backcover') return;
+            if (sec.classList.contains('impose-blank')) return;
+            n++;
+            const tag = document.createElement('span');
+            tag.className = 'page-no';
+            tag.textContent = n;
+            sec.appendChild(tag);
+        });
     }
 
     // ==========================================================================

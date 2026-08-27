@@ -46,6 +46,10 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1"></path><path d="M18 8h4a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-4"></path><path d="M11 5v14"></path></svg>
                 <span>行李清單</span>
             </a>
+            <a href="#page-toc" class="nav-item" data-page="toc">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                <span>行程簡介</span>
+            </a>
             <div class="nav-separator">每日行程</div>
             <div id="dynamic-day-nav" style="display: flex; flex-direction: column; gap: 6px;">
                 <!-- Days navigation links will be dynamically populated here -->
@@ -176,6 +180,9 @@
                     </div>
                 </div>
             </section>
+
+            <!-- 行程簡介 / 目錄（依天數動態生成） -->
+            <div id="dynamic-toc-page"></div>
 
             <!-- PAGE 2: CREDIT CARD STRATEGY -->
             <section id="page-cards" class="book-page">
@@ -399,6 +406,9 @@
             <div id="dynamic-custom-pages">
                 <!-- Javascript will inject custom pages here -->
             </div>
+
+            <!-- 封底（動態生成，用主角插圖收尾） -->
+            <div id="dynamic-backcover"></div>
 
         </div>
     </main>
