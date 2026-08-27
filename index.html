@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>旅遊手冊</title>
+
+    <!-- iOS：加入主畫面後以獨立 App 形式全螢幕開啟（無 Safari 網址列） -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="旅遊手冊">
+    <meta name="theme-color" content="#1f2933">
+    <!-- 不希望這個網址被搜尋引擎收錄 -->
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="apple-touch-icon" href="icon-180.png">
+    <link rel="icon" href="icon-180.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Noto+Serif+TC:wght@400;600;700&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- Sidebar Navigation (Hidden in Print) -->
+    <aside class="sidebar no-print">
+        <div class="sidebar-brand">
+            <span class="brand-emoji">🐶</span>
+            <div class="brand-text">
+                <h2 id="sidebar-title">旅行手冊</h2>
+                <p>Travel Handbook</p>
+            </div>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="#page-cover" class="nav-item active" data-page="cover">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                <span>手冊封面</span>
+            </a>
+            <a href="#page-cards" class="nav-item" data-page="cards">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                <span>刷卡攻略</span>
+            </a>
+            <a href="#page-packing" class="nav-item" data-page="packing">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1"></path><path d="M18 8h4a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-4"></path><path d="M11 5v14"></path></svg>
+                <span>行李清單</span>
+            </a>
+            <div class="nav-separator">每日行程</div>
+            <div id="dynamic-day-nav" style="display: flex; flex-direction: column; gap: 6px;">
+                <!-- Days navigation links will be dynamically populated here -->
+            </div>
+            <div class="nav-separator">旅遊資訊</div>
+            <div id="dynamic-info-nav" style="display: flex; flex-direction: column; gap: 6px;">
+                <!-- 注意事項 / 搭機資訊 / 飯店資訊 / 旅遊資訊 導覽由 app.js 產生 -->
+            </div>
+            <div class="nav-separator">實體列印</div>
+            <a href="#page-notes" class="nav-item" data-page="notes">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
+                <span>記事與蓋章頁</span>
+            </a>
+            <div class="nav-separator">自訂加頁</div>
+            <div id="dynamic-custom-nav" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;">
+                <!-- Dynamic custom pages links will be populated here -->
+            </div>
+            <div style="padding: 0 10px; display: flex; flex-direction: column; gap: 6px;">
+                <button id="btn-add-stamp-page" class="btn btn-secondary" style="font-size: 8.5pt; padding: 5px 8px; width: 100%; justify-content: center; gap: 4px;">➕ 新增蓋章頁</button>
+                <button id="btn-add-notes-page" class="btn btn-secondary" style="font-size: 8.5pt; padding: 5px 8px; width: 100%; justify-content: center; gap: 4px;">➕ 新增旅遊雜記</button>
+            </div>
+        </nav>
+        
+        <div class="sidebar-actions">
+            <button id="btn-toggle-preview" class="btn btn-secondary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <span>手冊預覽模式</span>
+            </button>
+            <button id="btn-imposition" class="btn btn-secondary" title="雙面列印後對折裝訂成小冊子時，頁面必須重新排序才會順">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                <span>拼版：關閉</span>
+            </button>
+            <div id="imposition-hint" class="no-print" style="display:none; font-size:8.5pt; line-height:1.5; color:var(--text-muted); background:var(--primary-light); border-radius:var(--radius-sm); padding:8px 10px; margin-bottom:8px;">
+                列印設定：<strong>雙面列印</strong>、翻頁方向選<strong>短邊翻頁</strong>、縮放<strong>100%（不要「符合頁面」）</strong>。<br>
+                印好後每張沿中央摺線對折，依序疊起，中間騎馬釘裝訂即可。
+            </div>
+            <button id="btn-print" class="btn btn-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                <span>列印成實體手冊</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content">
+        <!-- Top Control Bar (Handbook Switcher & Countdown) -->
+        <header class="top-info no-print">
+            <div class="handbook-manager">
+                <label for="handbook-select">📁 選擇手冊：</label>
+                <select id="handbook-select">
+                    <!-- Dynamic handbooks options will go here -->
+                </select>
+                <button id="btn-add-handbook" class="action-btn" title="新增空白手冊">➕ 新增</button>
+                <button id="btn-edit-handbook" class="action-btn" title="編輯目前行程內容">✏️ 編輯內容</button>
+                <button id="btn-delete-handbook" class="action-btn danger" title="刪除目前手冊">🗑️ 刪除</button>
+                
+                <span class="nav-separator">|</span>
+                
+                <span class="control-group">
+                    <label for="template-select">🎨 排版版型：</label>
+                    <select id="template-select" class="nav-select" title="決定版面「結構」：一天佔幾頁、要不要放圖、怎麼摺。">
+                        <option value="compact">📐 單頁經典版 (1日1頁)</option>
+                        <option value="detailed">📖 雙頁詳細版 (1日2頁)</option>
+                        <option value="text-heavy">📝 單頁純文字版 (無圖)</option>
+                        <option value="fourfold">🗂️ 四折頁口袋版 (4折長條)</option>
+                    </select>
+                </span>
+
+                <span class="control-group">
+                    <label for="style-select">🖌️ 風格：</label>
+                    <select id="style-select" class="nav-select" title="決定「外觀」：配色、字體、邊框、裝飾。不影響版面結構，可與任一排版版型自由搭配。此為全域設定，所有手冊共用。">
+                        <option value="washi">🍵 日系手帳風</option>
+                        <option value="minimal">📄 極簡清爽版</option>
+                        <option value="magazine">📰 雜誌編輯風</option>
+                        <option value="ticket">🎟️ 復古車票風</option>
+                        <option value="doodle">🎨 手繪塗鴉風</option>
+                        <option value="scrapbook">📎 拼貼手帳風</option>
+                        <option value="slate">🩵 灰藍卡片風</option>
+                        <option value="agency">🏢 旅行社印刷風</option>
+                    </select>
+                </span>
+            </div>
+            
+            <div class="countdown-container">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>✈️ 出發倒數: </span>
+                <strong id="countdown-days">--</strong><span> 天</span>
+            </div>
+            <div class="view-mode-indicator" id="view-mode-badge">
+                網頁互動模式
+            </div>
+        </header>
+
+        <!-- Dynamic Pages for Travel Book -->
+        <div class="book-pages" id="book-container">
+
+            <!-- PAGE 1: COVER -->
+            <section id="page-cover" class="book-page active">
+                <div class="cover-layout">
+                    <div class="cover-badge" id="cover-badge-text">JAPAN TRAVEL 2026</div>
+                    
+                    <!-- Mascot selector (No Print) -->
+                    <div class="mascot-selector-box no-print">
+                        <label for="mascot-select">🐾 選擇手冊主角：</label>
+                        <select id="mascot-select">
+                            <option value="dog">🐶 馬爾濟斯 (Maltese)</option>
+                            <option value="cat">🐱 溫馨貓貓 (Cat)</option>
+                            <option value="rabbit">🐰 軟萌兔兔 (Rabbit)</option>
+                            <option value="bird">🐦 小胖 (Cockatiel)</option>
+                        </select>
+                    </div>
+
+                    <h1 class="cover-title" id="cover-main-title">東京旅行手冊</h1>
+                    
+                    <div class="cover-image-container">
+                        <img src="assets/cover.jpg" alt="Tokyo Cover" class="cover-art" id="cover-img" onerror="if (!this.src.includes('cover_dog')) this.src='assets/cover_dog.jpg';">
+                    </div>
+
+                    <div class="cover-meta">
+                        <div class="meta-item">
+                            <span class="meta-label">📅 旅行日期</span>
+                            <span class="meta-val" id="cover-dates">2026.06.15 一 — 06.19 五</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">🐾 旅行小夥伴</span>
+                            <span class="meta-val" id="cover-partner">馬爾濟斯 & 你 🐶</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAGE 2: CREDIT CARD STRATEGY -->
+            <section id="page-cards" class="book-page">
+                <div class="page-header-container">
+                    <h2 class="page-title">💳 日本旅遊雙卡刷卡攻略</h2>
+                    <p class="page-description">2026年極致省錢攻略！中信 Uniopen 與玉山熊本熊聯名卡完美搭配</p>
+                </div>
+
+                <div class="cards-grid">
+                    <!-- Card 1 -->
+                    <div class="card-detail-box card-uniopen">
+                        <div class="card-box-header">
+                            <span class="card-badge primary">先刷這張</span>
+                            <h3 id="card1-title" class="card-title-editable" title="雙擊可編輯卡片名稱">中信 Uniopen 聯名卡</h3>
+                        </div>
+                        <ul class="card-perks" id="card1-perks-list">
+                            <!-- Populated dynamically -->
+                        </ul>
+                        <button type="button" class="btn-add-perk no-print" id="btn-add-perk-1">+ 新增優惠項目</button>
+                    </div>
+
+                    <!-- Card 2 -->
+                    <div class="card-detail-box card-kumamon">
+                        <div class="card-box-header">
+                            <span class="card-badge secondary">接力搭配</span>
+                            <h3 id="card2-title" class="card-title-editable" title="雙擊可編輯卡片名稱">玉山熊本熊卡</h3>
+                        </div>
+                        <ul class="card-perks" id="card2-perks-list">
+                            <!-- Populated dynamically -->
+                        </ul>
+                        <button type="button" class="btn-add-perk no-print" id="btn-add-perk-2">+ 新增優惠項目</button>
+                    </div>
+                </div>
+
+                <!--疊加技 Tips -->
+                <div class="info-alert info-tip">
+                    <span class="alert-icon">💡</span>
+                    <div class="alert-content">
+                        <strong>Bic Camera / 藥妝疊加省錢神技：</strong><br>
+                        免稅 (10%) + 折價券 (7%) + 信用卡加碼 (8.5%) = <strong>最高現省 25.5%！</strong>
+                    </div>
+                </div>
+
+                <!-- Interactive Calculator (No print) -->
+                <div class="card-calculator-box no-print">
+                    <h4>🧮 刷卡智能決策器</h4>
+                    <p class="calc-sub">輸入消費金額，自動推薦最划算的刷卡組合</p>
+                    <div class="calc-form">
+                        <div class="input-group">
+                            <label for="calc-currency">幣別</label>
+                            <select id="calc-currency">
+                                <option value="TWD">新台幣 (TWD)</option>
+                                <option value="JPY">日圓 (JPY)</option>
+                            </select>
+                        </div>
+                        <div class="input-group flex-fill">
+                            <label for="calc-amount">消費金額</label>
+                            <input type="number" id="calc-amount" placeholder="例如: 10000" min="0">
+                        </div>
+                        <div class="input-group">
+                            <label for="calc-category">商店類型</label>
+                            <select id="calc-category">
+                                <option value="general">一般實體商店 (百貨、餐廳)</option>
+                                <option value="suica">Suica儲值 / 交通卡</option>
+                                <option value="bic">Bic Camera / 電器</option>
+                                <option value="cosme">日系藥妝店</option>
+                                <option value="uniqlo">UNIQLO / GU 服飾</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="calc-result" id="calc-result">
+                        請輸入金額以計算最佳推薦卡別！
+                    </div>
+                </div>
+                
+                <!-- 實際消費記錄：螢幕上可直接打字，列印時同一張表格留白給手寫 -->
+                <div class="card-notes-printable">
+                    <h4>📝 實際消費記錄與備忘</h4>
+                    <div class="print-table" id="expense-table">
+                        <div class="print-tr print-th">
+                            <span>日期</span>
+                            <span>商店 / 項目</span>
+                            <span>刷卡金額</span>
+                            <span>使用卡別</span>
+                        </div>
+                        <!-- 資料列由 app.js 的 renderExpenseTable() 動態產生 -->
+                    </div>
+                    <div class="expense-actions no-print">
+                        <button type="button" class="btn-add-row" id="btn-add-expense-rows">＋ 增加 5 行</button>
+                        <button type="button" class="btn-add-row" id="btn-clear-expenses">🧹 清空已填內容</button>
+                        <span class="expense-hint">點任一格即可打字，離開該格自動儲存</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PAGE 3: PACKING CHECKLIST -->
+            <section id="page-packing" class="book-page">
+                <div class="page-header-container">
+                    <h2 class="page-title">🎒 出發行李打包清單</h2>
+                    <p class="page-description">帶上背包，隨時準備出發！打勾確認不遺漏任何重要物品。</p>
+                </div>
+
+                <!-- Packing Progress (No print) -->
+                <div class="packing-progress-bar no-print">
+                    <div class="progress-info">
+                        <span>打包進度</span>
+                        <strong id="progress-percent">0%</strong>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                </div>
+
+                <div class="packing-grid">
+                    <!-- Category 1 -->
+                    <div class="packing-category">
+                        <h3>🔑 重要證件與資金</h3>
+                        <div class="checklist-items" data-category="documents">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Category 2 -->
+                    <div class="packing-category">
+                        <h3>📱 3C與電子產品</h3>
+                        <div class="checklist-items" data-category="electronics">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Category 3 -->
+                    <div class="packing-category">
+                        <h3>🧥 穿搭裝備 (輕量化)</h3>
+                        <div class="checklist-items" data-category="clothing">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Category 4 -->
+                    <div class="packing-category">
+                        <h3>🧴 個人盥洗與藥品</h3>
+                        <div class="checklist-items" data-category="personal">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Add custom item (No print) -->
+                <div class="add-item-box no-print">
+                    <h4>➕ 新增自訂物品</h4>
+                    <div class="add-form">
+                        <select id="add-item-category">
+                            <option value="documents">重要證件</option>
+                            <option value="electronics">3C電子</option>
+                            <option value="clothing">穿搭裝備</option>
+                            <option value="personal">個人藥品</option>
+                        </select>
+                        <input type="text" id="add-item-name" placeholder="請輸入物品名稱...">
+                        <button id="btn-add-item" class="btn btn-secondary">新增</button>
+                    </div>
+                </div>
+
+                <!-- Flight and Lodging Section (Both Web and Print) -->
+                <div class="flight-lodging-section">
+                    <div class="info-card flight-card">
+                        <h3>✈️ 航班資訊</h3>
+                        <div class="flight-grid">
+                            <div class="flight-route route-dep">
+                                <div class="route-header">🛫 去程航班</div>
+                                <div class="route-details">
+                                    <div class="detail-row"><span class="detail-label">時間:</span> <span id="info-dep-time" class="detail-val">--</span></div>
+                                    <div class="detail-row"><span class="detail-label">機場:</span> <span id="info-dep-airport" class="detail-val">--</span></div>
+                                    <div class="detail-row"><span class="detail-label">航司:</span> <span id="info-dep-airline" class="detail-val">--</span></div>
+                                    <div class="detail-row"><span class="detail-label">班機:</span> <span id="info-dep-flight" class="detail-val">--</span></div>
+                                </div>
+                            </div>
+                            <div class="flight-route route-ret">
+                                <div class="route-header">🛬 回程航班</div>
+                                <div class="route-details">
+                                    <div class="detail-row"><span class="detail-label">時間:</span> <span id="info-ret-time" class="detail-val">--</span></div>
+                                    <div class="detail-row"><span class="detail-label">機場:</span> <span id="info-ret-airport" class="detail-val">--</span></div>
+                                    <div class="detail-row"><span class="detail-label">航司:</span> <span id="info-ret-airline" class="detail-val">--</span></div>
+                                    <div class="detail-row"><span class="detail-label">班機:</span> <span id="info-ret-flight" class="detail-val">--</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-card lodging-card">
+                        <h3>🏨 住宿資訊</h3>
+                        <div class="lodging-list" id="info-hotels-list">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- DYNAMIC DAY PAGES (DAY 1 - DAY 5 BINDINGS WILL GO HERE DYNAMICALLY) -->
+            <div id="dynamic-day-pages">
+                <!-- Javascript will inject the Day sections here -->
+            </div>
+
+            <!-- 旅遊資訊頁（排在每日行程之後，內容過長時由 app.js 自動分頁） -->
+            <div id="dynamic-info-pages">
+                <!-- Javascript will inject the info sections here -->
+            </div>
+
+            <!-- PAGE 9: PHYSICAL STAMPS PAGE (NO GRID, CLEAN BACKGROUND) -->
+            <section id="page-notes" class="book-page stamps-only-page">
+                <div class="page-header-container">
+                    <h2 class="page-title">🌸 旅行紀念戳章收集頁</h2>
+                    <p class="page-description">在日本各大景點與車站收集美麗的實體戳印，留下最珍貴的旅程回憶！</p>
+                </div>
+                <div class="blank-stamp-area">
+                    <!-- Completely blank for free stamping -->
+                </div>
+            </section>
+
+            <!-- DYNAMIC CUSTOM PAGES (STAMPS OR TRAVEL NOTES WILL GO HERE DYNAMICALLY) -->
+            <div id="dynamic-custom-pages">
+                <!-- Javascript will inject custom pages here -->
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Handbook Editor Modal Overlay (No print) -->
+    <div class="editor-overlay no-print" id="editor-modal">
+        <div class="editor-container">
+            <div class="editor-header">
+                <h3>✏️ 編輯行程手冊內容</h3>
+                <span class="close-editor" id="btn-close-editor">&times;</span>
+            </div>
+            
+            <!-- Editor Tabs -->
+            <div class="editor-tabs">
+                <button class="tab-btn active" data-tab="tab-basic">基本設定</button>
+                <button class="tab-btn" data-tab="tab-json">進階 JSON 編輯 (適合貼上 Gemini 行程)</button>
+            </div>
+            
+            <div class="editor-content-box">
+                <!-- Tab: Basic Settings -->
+                <div class="editor-tab-pane active" id="tab-basic">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-title">手冊主要標題</label>
+                            <input type="text" id="edit-title">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-subtitle">手冊副標題</label>
+                            <input type="text" id="edit-subtitle">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-dates">旅行日期文字 (例如: 2026.06.15 — 06.19)</label>
+                            <input type="text" id="edit-dates">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label>✈️ 去程航班資訊</label>
+                            <div style="display: flex; gap: 5px;">
+                                <input type="text" id="edit-dep-time" placeholder="起飛 02:00" style="width: 85px;" title="起飛時間">
+                                <input type="text" id="edit-dep-arrtime" placeholder="抵達 06:30" style="width: 85px;" title="抵達時間">
+                                <input type="text" id="edit-dep-airport" placeholder="桃園國際機場 T1" title="搭乘地點">
+                                <input type="text" id="edit-dep-airline" placeholder="航空公司" style="width: 100px;" title="航空公司">
+                                <input type="text" id="edit-dep-flight" placeholder="航班號" style="width: 90px;" title="航班號">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label>✈️ 回程航班資訊</label>
+                            <div style="display: flex; gap: 5px;">
+                                <input type="text" id="edit-ret-time" placeholder="起飛 21:15" style="width: 85px;" title="起飛時間">
+                                <input type="text" id="edit-ret-arrtime" placeholder="抵達 23:55" style="width: 85px;" title="抵達時間">
+                                <input type="text" id="edit-ret-airport" placeholder="成田國際機場 T1" title="搭乘地點">
+                                <input type="text" id="edit-ret-airline" placeholder="航空公司" style="width: 100px;" title="航空公司">
+                                <input type="text" id="edit-ret-flight" placeholder="航班號" style="width: 90px;" title="航班號">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-hotel1">🏨 住宿資訊 1 (日期與飯店名稱)</label>
+                            <input type="text" id="edit-hotel1" placeholder="例如: 3/01-3/04 飯店名稱">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-hotel2">🏨 住宿資訊 2 (日期與飯店名稱)</label>
+                            <input type="text" id="edit-hotel2" placeholder="例如: 3/04-3/06 飯店名稱">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-countdown">出發日期 (計算倒數用，格式: YYYY-MM-DD)</label>
+                            <input type="date" id="edit-countdown">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-badge">右上角徽章文字 (例如: JAPAN 2026)</label>
+                            <input type="text" id="edit-badge">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="edit-username">您的名字 (顯示在旅行小夥伴中，預設為「你」)</label>
+                            <input type="text" id="edit-username" placeholder="請輸入您的名字...">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-template">預設排版版型</label>
+                            <select id="edit-template" style="padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius-md); font-family: var(--font-sans); font-size: 14px; background-color: #FFFFFF; font-weight: bold; cursor: pointer;">
+                                <option value="compact">📐 單頁經典版 (1日1頁)</option>
+                                <option value="detailed">📖 雙頁詳細版 (1日2頁)</option>
+                                <option value="text-heavy">📝 單頁純文字版 (無圖)</option>
+                                <option value="fourfold">🗂️ 四折頁口袋版 (4折長條)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <p style="font-size:12px; color:var(--text-muted); margin-top:10px; border-top:1px solid var(--border-color); padding-top:10px;">
+                        ⚠️ 註：如需自訂每日行程的細節與時間點，請點擊上方<strong>「進階 JSON 編輯」</strong>分頁進行快速修改或直接貼上 Gemini 生成的完整手冊。刷卡攻略的卡片名稱與優惠項目、打包清單的物品，都可以直接在該頁面上雙擊文字修改、按 × 刪除、或用「+ 新增」按鈕加入。實際消費記錄表、注意事項、搭機資訊、飯店資訊與旅遊資訊各頁，則可直接點擊文字打字修改，離開該欄位就會自動儲存。
+                    </p>
+                </div>
+                
+                <!-- Tab: JSON Advanced Editor -->
+                <div class="editor-tab-pane" id="tab-json">
+                    <p class="editor-instruction">
+                        您可以在這裡直接修改手冊的完整結構，或將與 Gemini 討論出來的行程 JSON 代碼直接貼在下方：
+                    </p>
+                    <textarea id="edit-json-area" placeholder="請貼上完整的行程 JSON 資料..."></textarea>
+                    <div class="json-actions">
+                        <button id="btn-format-json" class="btn btn-secondary" style="width:auto; padding:6px 12px; font-size:12px;">格式化 JSON</button>
+                        <span id="json-error-msg" class="error-msg"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="editor-footer">
+                <button class="btn btn-secondary" id="btn-cancel-save" style="width: auto;">取消</button>
+                <button class="btn btn-primary" id="btn-save-handbook" style="width: auto;">💾 儲存修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Selector Modal Overlay (No print) -->
+    <div class="editor-overlay no-print" id="image-selector-modal">
+        <div class="editor-container" style="max-width: 650px;">
+            <div class="editor-header">
+                <h3>🖼️ 選擇圖庫相片</h3>
+                <span class="close-editor" id="btn-close-image-selector">&times;</span>
+            </div>
+            
+            <div class="editor-content-box" style="padding: 20px;">
+                <p class="editor-instruction">
+                    點擊下方圖庫中的縮圖來更換照片（優先列出 assetsnew 資料夾中已裁切好 16:9 的精修版，其餘為 assets 資料夾的舊版原始檔案，皆以高解析度直接載入，完全解決壓縮模糊問題）：
+                </p>
+                
+                <!-- Thumbnails Grid -->
+                <div id="gallery-grid" class="gallery-grid">
+                    <!-- Javascript will inject thumbnails here -->
+                </div>
+                
+                <!-- Manual input -->
+                <div class="form-group" style="margin-top: 15px;">
+                    <label for="manual-image-path">✍️ 手動輸入相片路徑 (如果剛放置了新相片至 assets 或 assetsnew 資料夾)</label>
+                    <div style="display: flex; gap: 10px; margin-top: 5px;">
+                        <input type="text" id="manual-image-path" placeholder="例如：assetsnew/my_new_photo.jpg" style="flex: 1; padding: 8px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 10pt;">
+                        <button id="btn-apply-manual-path" class="btn btn-primary" style="width: auto; padding: 0 15px;">套用路徑</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="editor-footer">
+                <button class="btn btn-secondary" id="btn-cancel-image-selector" style="width: auto;">關閉視窗</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- auth.js 必須排在 app.js 前面：它負責決定要不要先擋登入畫面 -->
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

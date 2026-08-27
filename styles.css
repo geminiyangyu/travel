@@ -1,0 +1,4918 @@
+/* ==========================================================================
+   東京旅行手冊 2026 - 全局樣式 & 設計系統 (標楷體 & 質感紙感)
+   ========================================================================== */
+
+:root {
+    /* 色彩系統 - 日系暖沙與陶橘 */
+    --bg-screen: #F6F2EB;
+    --bg-card: #FFFFFF;
+    --primary: #C85A32;       /* 陶土橘 - 溫暖日系 */
+    --primary-light: #FCEFE9;
+    --secondary: #2B4C59;     /* 靛石藍 - 質感穩重 */
+    --secondary-light: #EBF1F3;
+    --accent: #DFAB4E;        /* 暖陽金 - 重點標示 */
+    --text-main: #1C1C1C;     /* 深炭灰 - 護眼高對比 */
+    --text-muted: #5E5E5E;
+    --border-color: #E2DDD5;
+    --success: #5F8D58;
+    --success-light: #EEF5ED;
+    --warning: #D89047;
+    --warning-light: #FEF6EC;
+    
+    /* 標楷體字型系統 (Mac: BiauKai, Windows: DFKai-SB, 標楷體) */
+    --font-kai: "BiauKai", "DFKai-SB", "標楷體", "Noto Sans TC", serif;
+    --font-sans: "Outfit", "Noto Sans TC", sans-serif;
+    --radius-lg: 12px;
+    --radius-md: 8px;
+    --radius-sm: 4px;
+    --transition: all 0.2s ease-in-out;
+    --shadow: 0 4px 15px rgba(44, 44, 44, 0.05);
+    --shadow-hover: 0 8px 25px rgba(44, 44, 44, 0.1);
+
+    /* ----------------------------------------------------------------------
+       風格主題變數 (Theme layer)
+       ----------------------------------------------------------------------
+       這些變數控制「風格」下拉選單切換的視覺差異。:root 這組預設值 = 日系
+       手帳風，所以沒套用任何 style-* class 時外觀跟以前完全一樣。
+       body.style-XXX 只覆寫這些變數（必要時再加少量微調），版面骨架仍由
+       「排版版型」template-XXX 決定 —— 兩者互不干擾，可自由組合。
+       ---------------------------------------------------------------------- */
+    --paper-grad: linear-gradient(135deg, #FAF6F0 0%, #EFE7DC 100%);
+    --paper-dot: rgba(43, 76, 89, 0.06);        /* 紙張點陣紋理 (螢幕) */
+    --paper-dot-faint: rgba(43, 76, 89, 0.04);  /* 紙張點陣紋理 (列印/四折) */
+    --panel-bg: #FFFFFF;                        /* 內容面板底色 */
+    --tape-color: rgba(200, 90, 50, 0.25);      /* 紙膠帶 */
+    --tape-display: block;                      /* 紙膠帶顯示與否 */
+    --photo-frame-bg: #FFFFFF;                  /* 拍立得白框底色 */
+    --photo-frame-border: 1px solid #D2C9B9;
+    --photo-frame-pad: 8px 8px 20px 8px;        /* 下緣較厚 = 拍立得 */
+    --title-family: var(--font-kai);            /* 大標字體 */
+    --title-spacing: normal;
+    --title-weight: bold;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-kai);
+    background-color: var(--bg-screen);
+    color: var(--text-main);
+    line-height: 1.5;
+    display: flex;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* ==========================================================================
+   側邊導覽列 (Screen View Only)
+   ========================================================================== */
+
+.sidebar {
+    width: 270px;
+    background-color: #FFFFFF;
+    border-right: 1px solid var(--border-color);
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.01);
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 25px;
+    padding-left: 8px;
+}
+
+.brand-emoji {
+    font-size: 26px;
+}
+
+.brand-text h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--secondary);
+    font-family: var(--font-kai);
+}
+
+.brand-text p {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 1px;
+    font-family: var(--font-sans);
+}
+
+.sidebar-menu {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    color: var(--text-main);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: var(--radius-md);
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.nav-item:hover {
+    background-color: var(--secondary-light);
+    color: var(--secondary);
+}
+
+.nav-item.active {
+    background-color: var(--primary);
+    color: #FFFFFF;
+}
+
+.nav-item.active svg {
+    stroke: #FFFFFF;
+}
+
+.nav-item svg {
+    transition: var(--transition);
+    stroke: var(--text-main);
+}
+
+.nav-item:hover svg {
+    stroke: var(--secondary);
+}
+
+.day-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 50%;
+    background-color: var(--secondary-light);
+    color: var(--secondary);
+    font-family: var(--font-sans);
+}
+
+.nav-item.active .day-badge {
+    background-color: #FFFFFF;
+    color: var(--primary);
+}
+
+.nav-separator {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    margin: 15px 0 6px 14px;
+}
+
+.sidebar-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* ==========================================================================
+   按鈕樣式
+   ========================================================================== */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 14px;
+    font-family: var(--font-kai);
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+    width: 100%;
+}
+
+.btn-primary {
+    background-color: var(--secondary);
+    color: #FFFFFF;
+}
+
+.btn-primary:hover {
+    background-color: #1c333c;
+}
+
+.btn-secondary {
+    background-color: var(--primary-light);
+    color: var(--primary);
+    border: 1px solid rgba(200, 90, 50, 0.1);
+}
+
+.btn-secondary:hover {
+    background-color: var(--primary);
+    color: #FFFFFF;
+}
+
+/* ==========================================================================
+   主內容區域 & 頂部欄
+   ========================================================================== */
+
+.content {
+    margin-left: 270px;
+    flex: 1;
+    padding: 30px;
+    max-width: 1150px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 頂部手冊切換與倒數欄 */
+.top-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #FFFFFF;
+    border: 1px solid var(--border-color);
+    padding: 12px 20px;
+    border-radius: var(--radius-lg);
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.handbook-manager {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;   /* 加入「風格」後控制項變多，窄視窗時換行而不是擠壓 */
+    gap: 8px;
+    row-gap: 8px;
+    font-size: 14px;
+}
+
+/* 標籤不要在字中間斷行（「排版版型：」被拆成兩行看起來像壞掉） */
+.handbook-manager label {
+    white-space: nowrap;
+}
+
+/* 「標籤 + 下拉選單」綁成一組，換行時整組一起走，不會標籤留上一行、
+   選單掉到下一行變成兩個看不出關聯的元件。 */
+.control-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.handbook-manager select {
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-family: var(--font-kai);
+    font-weight: bold;
+    outline: none;
+    background-color: var(--bg-screen);
+    cursor: pointer;
+}
+
+.action-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: bold;
+    border: 1px solid var(--border-color);
+    background-color: #FFFFFF;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-family: var(--font-kai);
+    transition: var(--transition);
+}
+
+.action-btn:hover {
+    background-color: var(--secondary-light);
+    color: var(--secondary);
+    border-color: var(--secondary);
+}
+
+.action-btn.danger {
+    color: #A33A3A;
+}
+
+.action-btn.danger:hover {
+    background-color: #FDF2F2;
+    border-color: #A33A3A;
+}
+
+.countdown-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+}
+
+.countdown-container strong {
+    color: var(--primary);
+    font-size: 18px;
+    font-family: var(--font-sans);
+}
+
+.view-mode-indicator {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background-color: var(--secondary-light);
+    color: var(--secondary);
+}
+
+/* ==========================================================================
+   手冊頁面容器與切換
+   ========================================================================== */
+
+.book-pages {
+    flex: 1;
+    position: relative;
+}
+
+.book-page {
+    display: none;
+    background: 
+        radial-gradient(var(--paper-dot) 1.2px, transparent 1.2px), 
+        var(--paper-grad) !important;
+    background-size: 16px 16px, 100% 100% !important;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 30px;
+    box-shadow: var(--shadow);
+    animation: fadeIn 0.2s ease-out;
+}
+
+.book-page.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
+   PAGE 1: COVER PAGE
+   ========================================================================== */
+
+.cover-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 10px 0;
+}
+
+.cover-badge {
+    background-color: var(--secondary-light);
+    color: var(--secondary);
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    font-family: var(--font-sans);
+}
+
+.mascot-selector-box {
+    margin-bottom: 20px;
+    background-color: var(--primary-light);
+    border: 1px solid rgba(200, 90, 50, 0.15);
+    padding: 8px 16px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.mascot-selector-box select {
+    padding: 4px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-family: var(--font-kai);
+    outline: none;
+    background-color: #FFFFFF;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.cover-title {
+    font-size: 38px;
+    font-family: var(--title-family);
+    letter-spacing: var(--title-spacing);
+    font-weight: 900;
+    color: var(--secondary);
+    margin-bottom: 8px;
+}
+
+.cover-subtitle {
+    font-size: 15px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 25px;
+}
+
+.cover-image-container {
+    width: 100%;
+    max-width: 360px;
+    aspect-ratio: 1;
+    border-radius: 16px;
+    overflow: hidden;
+    margin: 15px auto 20px auto;
+    border: 4px solid #FFFFFF;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.cover-art {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cover-meta {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    width: 100%;
+    max-width: 500px;
+    background-color: var(--primary-light) !important;
+    padding: 12px 20px;
+    border-radius: var(--radius-lg);
+    border: 1.5px solid var(--border-color);
+    margin-top: 15px;
+}
+
+.meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.meta-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.meta-val {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--secondary);
+}
+
+/* ==========================================================================
+   PAGE 2: CREDIT CARD STRATEGY
+   ========================================================================== */
+
+.page-header-container {
+    margin-bottom: 20px;
+    border-bottom: 1.5px solid var(--border-color);
+    padding-bottom: 12px;
+}
+
+.page-title {
+    font-size: 22px;
+    font-family: var(--title-family);
+    letter-spacing: var(--title-spacing);
+    font-weight: var(--title-weight);
+    color: var(--secondary);
+    margin-bottom: 4px;
+}
+
+.page-description {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+    align-items: start; /* boxes hug their own content instead of stretching to match a taller neighbor */
+}
+
+.card-detail-box {
+    padding: 18px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-screen);
+}
+
+.card-box-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.card-badge {
+    align-self: flex-start;
+    font-size: 10px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 10px;
+}
+
+.card-badge.primary {
+    background-color: var(--primary);
+    color: #FFFFFF;
+}
+
+.card-badge.secondary {
+    background-color: var(--secondary);
+    color: #FFFFFF;
+}
+
+.card-detail-box h3 {
+    font-size: 16px;
+    color: var(--secondary);
+    font-weight: bold;
+}
+
+.card-perks {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.card-perks li {
+    font-size: 13px;
+    position: relative;
+    /* Mirrors .check-item-row: a hoverable row with a delete "x" on the
+       right, so editing a card's perks feels like the same interaction as
+       editing the packing checklist instead of a different pattern. */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px 4px 14px;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.2s ease;
+}
+
+.card-perks li:hover {
+    background-color: rgba(43, 76, 89, 0.05);
+}
+
+.card-perks li::before {
+    content: "▫️";
+    position: absolute;
+    left: 0;
+    font-size: 10px;
+    color: var(--primary);
+}
+
+.card-perk-text {
+    flex: 1;
+    cursor: pointer;
+}
+
+.card-perk-text[data-editable]:hover {
+    text-decoration: underline dotted;
+    text-decoration-color: var(--text-muted);
+}
+
+.card-title-editable {
+    cursor: pointer;
+}
+
+.card-title-editable:hover {
+    text-decoration: underline dotted;
+    text-decoration-color: var(--text-muted);
+}
+
+.btn-add-perk {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 4px 8px 4px 14px;
+    text-align: left;
+    opacity: 0.75;
+    transition: opacity 0.2s ease;
+}
+
+.btn-add-perk:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+/* 提示訊息匡 */
+.info-alert {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    margin-bottom: 20px;
+    font-size: 13px;
+}
+
+.info-tip {
+    background-color: var(--success-light);
+    border-left: 4px solid var(--success);
+    color: #3b5c35;
+}
+
+.alert-icon {
+    font-size: 18px;
+}
+
+/* 刷卡計算器 */
+.card-calculator-box {
+    background-color: var(--secondary-light);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+}
+
+.card-calculator-box h4 {
+    font-size: 14px;
+    color: var(--secondary);
+    margin-bottom: 4px;
+}
+
+.calc-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.calc-form {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 100px;
+}
+
+.flex-fill {
+    flex: 1;
+    min-width: 180px;
+}
+
+.input-group label {
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--secondary);
+}
+
+.input-group select,
+.input-group input {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-family: var(--font-kai);
+    font-size: 13px;
+    outline: none;
+    background-color: #FFFFFF;
+}
+
+.calc-result {
+    background-color: #FFFFFF;
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    border: 1px solid rgba(43, 76, 89, 0.05);
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--secondary);
+    min-height: 44px;
+}
+
+/* ==========================================================================
+   PAGE 3: PACKING CHECKLIST
+   ========================================================================== */
+
+.packing-progress-bar {
+    background-color: var(--bg-screen);
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--secondary);
+    margin-bottom: 6px;
+}
+
+.progress-track {
+    height: 6px;
+    background-color: rgba(43, 76, 89, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    width: 0%;
+    background-color: var(--primary);
+    transition: width 0.3s ease;
+}
+
+.packing-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    align-items: start; /* boxes hug their own content instead of stretching to match a taller neighbor */
+}
+
+.packing-category {
+    background-color: var(--bg-screen);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+}
+
+.packing-category h3 {
+    font-size: 14px;
+    color: var(--secondary);
+    border-bottom: 1.5px solid var(--border-color);
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+}
+
+.checklist-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.check-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    transition: background-color 0.2s ease;
+}
+
+.check-item-row:hover {
+    background-color: rgba(43, 76, 89, 0.05);
+}
+
+.check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    flex: 1;
+}
+
+.check-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.check-item input[type="checkbox"]:checked + span {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.btn-delete-item {
+    background: none;
+    border: none;
+    color: #e74c3c;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0 6px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+}
+
+.check-item-row:hover .btn-delete-item {
+    opacity: 0.8;
+}
+
+
+/* 航班與住宿卡片樣式 */
+.flight-lodging-section {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-top: 25px;
+}
+
+.flight-card, .lodging-card {
+    background-color: var(--bg-screen);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    box-shadow: var(--shadow-sm);
+}
+
+.flight-card h3, .lodging-card h3 {
+    font-size: 14px;
+    color: var(--secondary);
+    border-bottom: 1.5px solid var(--border-color);
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+}
+
+.flight-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.flight-route {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.route-header {
+    font-weight: bold;
+    font-size: 12px;
+    color: var(--primary);
+    margin-bottom: 4px;
+}
+
+.route-details {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.detail-row {
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dashed rgba(0,0,0,0.05);
+    padding-bottom: 2px;
+}
+
+.detail-label {
+    color: var(--text-muted);
+}
+
+.detail-val {
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.lodging-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.lodging-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 10px;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--primary);
+}
+
+.hotel-dates {
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+.hotel-name {
+    font-size: 12px;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+/* 新增物品匡 */
+.add-item-box {
+    margin-top: 20px;
+    background-color: var(--primary-light);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+}
+
+.add-item-box h4 {
+    font-size: 13px;
+    color: var(--primary);
+    margin-bottom: 8px;
+}
+
+.add-form {
+    display: flex;
+    gap: 8px;
+}
+
+.add-form select,
+.add-form input {
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    outline: none;
+    font-family: var(--font-kai);
+}
+
+.add-form input {
+    flex: 1;
+}
+
+.add-form .btn {
+    width: auto;
+}
+
+/* ==========================================================================
+   DAILY PAGES LAYOUT
+   ========================================================================== */
+
+.day-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.day-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    border-bottom: 1.5px solid var(--border-color);
+    padding-bottom: 10px;
+}
+
+.day-date {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--secondary);
+    color: #FFFFFF;
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    min-width: 80px;
+}
+
+.day-num {
+    font-size: 14px;
+    font-weight: bold;
+    font-family: var(--font-sans);
+}
+
+.day-calendar {
+    font-size: 10px;
+}
+
+.day-title {
+    font-size: 20px;
+    font-family: var(--title-family);
+    letter-spacing: var(--title-spacing);
+    font-weight: var(--title-weight);
+    color: var(--secondary);
+}
+
+.day-hero-image {
+    position: relative;
+    background-color: var(--photo-frame-bg) !important;
+    padding: var(--photo-frame-pad) !important;
+    border: var(--photo-frame-border) !important;
+    box-shadow: 0 4px 12px rgba(44, 44, 44, 0.08) !important;
+    border-radius: 0 !important;
+    margin: 10px auto 12px auto !important;
+    width: 90% !important;
+    max-width: 280px !important;
+    max-height: none !important;
+    overflow: visible !important;
+    transition: var(--transition);
+}
+
+/* Organic hand-made rotations for Polaroid photos */
+#page-day1 .day-hero-image { transform: rotate(-1.5deg); }
+#page-day2 .day-hero-image { transform: rotate(1deg); }
+#page-day3 .day-hero-image { transform: rotate(-0.8deg); }
+#page-day4 .day-hero-image { transform: rotate(1.3deg); }
+#page-day5 .day-hero-image { transform: rotate(-1.2deg); }
+
+.day-hero-image:hover {
+    transform: rotate(0deg) scale(1.02) !important;
+    z-index: 10;
+}
+
+.washi-tape {
+    display: var(--tape-display);
+    position: absolute;
+    width: 80px;
+    height: 20px;
+    background-color: var(--tape-color) !important;
+    border-left: 2.5px dashed rgba(255,255,255,0.4);
+    border-right: 2.5px dashed rgba(255,255,255,0.4);
+    top: -9px;
+    left: 50%;
+    transform: translateX(-50%) rotate(2deg);
+    z-index: 5;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.day-art {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: auto !important; /* Let it adapt to natural aspect ratio of the image */
+    object-fit: cover !important;
+    background-color: #FFFFFF !important;
+    border: 1px solid #EAEAEA !important;
+    cursor: pointer;
+    transition: filter 0.2s ease, transform 0.2s ease !important;
+}
+
+.day-art:hover, .cover-art:hover {
+    filter: brightness(0.9) contrast(1.1) !important;
+    transform: scale(1.015) !important;
+}
+
+.cover-image-container, .day-hero-image {
+    position: relative !important;
+}
+
+.cover-image-container::after, .day-hero-image::after {
+    content: "📷 點擊更換照片";
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.6) !important;
+    color: #FFFFFF !important;
+    font-size: 8pt !important;
+    padding: 3px 6px !important;
+    border-radius: 4px !important;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.cover-image-container:hover::after, .day-hero-image:hover::after {
+    opacity: 1;
+}
+
+@media print {
+    .cover-image-container::after, .day-hero-image::after {
+        display: none !important;
+    }
+}
+
+.day-top-grid {
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+    align-items: start;
+}
+
+.day-top-grid .day-hero-image {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: 380px !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+}
+
+.day-top-grid .day-hero-image .day-art {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 360px !important;
+    object-fit: cover !important;
+}
+
+.day-bottom-timeline {
+    width: 100%;
+    margin-top: 5px;
+}
+
+.day-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.info-card {
+    background-color: var(--bg-screen);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 15px;
+}
+
+.info-card h4 {
+    font-size: 13px;
+    color: var(--secondary);
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 4px;
+}
+
+.info-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+}
+
+.info-list li {
+    position: relative;
+    padding-left: 12px;
+}
+
+.info-list li::before {
+    content: "▪️";
+    position: absolute;
+    left: 0;
+    font-size: 8px;
+}
+
+.info-card p {
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.info-card p:last-child {
+    margin-bottom: 0;
+}
+
+.day-timeline {
+    background-color: var(--panel-bg);
+    padding-left: 6px;
+}
+
+.day-timeline.no-time .time {
+    display: none;
+}
+
+.day-timeline.no-time .timeline-item:not(:last-child)::after {
+    left: 4px;
+}
+
+.timeline-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--secondary);
+    margin-bottom: 16px;
+}
+
+.timeline-item {
+    display: flex;
+    gap: 15px;
+    position: relative;
+    padding-bottom: 15px;
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-item:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 80px;
+    top: 18px;
+    bottom: 0;
+    width: 1.5px;
+    background-color: var(--border-color);
+}
+
+.time {
+    width: 70px;
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--primary);
+    font-family: var(--font-sans);
+    text-align: right;
+}
+
+.timeline-node {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    border: 2px solid #FFFFFF;
+    box-shadow: 0 0 0 1.5px var(--primary);
+    margin-top: 4px;
+    z-index: 5;
+    position: relative;
+}
+
+.timeline-desc {
+    flex: 1;
+}
+
+.timeline-desc h5 {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--secondary);
+    margin-bottom: 2px;
+}
+
+.timeline-desc p {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* ==========================================================================
+   PAGE 9: NOTES & PHYSICAL STAMPS (PRINT GRID)
+   ========================================================================== */
+
+.notes-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.stamp-box {
+    border: 1.5px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 15px;
+    background-color: var(--bg-screen);
+}
+
+.stamp-slot {
+    aspect-ratio: 1.5;
+    border: 1px dashed rgba(43, 76, 89, 0.2);
+    background-color: #FFFFFF;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 11px;
+}
+
+.stamp-meta {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.meta-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--secondary);
+}
+
+.line-dot {
+    flex: 1;
+    border-bottom: 1px dotted var(--border-color);
+    height: 10px;
+}
+
+/* ==========================================================================
+   實際消費記錄表 (可打字 + 可手寫)
+   ==========================================================================
+   這張表以前只寫在 @media print 裡，所以螢幕上只看得到沒有格線的裸文字。
+   現在樣式放在全域，網頁互動 / 手冊預覽 / 實際列印三種情境長得一模一樣。
+   ========================================================================== */
+
+.print-table {
+    border: 1px solid var(--text-main);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.print-tr {
+    display: grid;
+    grid-template-columns: 80px 1fr 100px 100px;
+    border-bottom: 1px solid var(--text-main);
+    padding: 6px;
+    font-size: 12px;
+    gap: 6px;
+}
+
+.print-tr:last-child {
+    border-bottom: none;
+}
+
+.print-th {
+    font-weight: bold;
+    background-color: var(--secondary-light);
+}
+
+/* 可編輯格子：平常看起來就是表格內文，不做成輸入框，
+   這樣列印出來不會多一圈框線，畫面也不會像在填表單。 */
+.exp-cell {
+    min-height: 1.2em;
+    outline: none;
+    word-break: break-word;
+    cursor: text;
+}
+
+.exp-cell:hover {
+    background-color: var(--primary-light);
+}
+
+.exp-cell:focus {
+    background-color: var(--primary-light);
+    box-shadow: inset 0 -1.5px 0 var(--primary);
+}
+
+.expense-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.btn-add-row {
+    background: none;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--primary);
+    font-family: var(--font-kai);
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn-add-row:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary);
+}
+
+.expense-hint {
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.card-notes-printable {
+    margin-top: 20px;
+}
+
+.card-notes-printable h4 {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--secondary);
+    margin-bottom: 8px;
+}
+
+/* 合計列：3 欄（合計標籤、金額、留白），金額欄與上方對齊 */
+/* 沿用 .print-tr 的四欄格線，合計金額才會準確落在「刷卡金額」欄下方 */
+.exp-total-row {
+    font-weight: bold;
+    background-color: var(--secondary-light);
+    border-bottom: none !important;
+    border-top: 1.5px solid var(--text-main);
+}
+
+.exp-total-label {
+    grid-column: 1 / 3;          /* 橫跨「日期」與「商店 / 項目」兩欄 */
+    color: var(--secondary);
+    letter-spacing: 0.1em;
+}
+
+.exp-total-value {
+    grid-column: 3;              /* 對齊「刷卡金額」欄 */
+    color: var(--primary);
+    font-variant-numeric: tabular-nums;
+}
+
+
+.exp-print-limit {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 4px 6px;
+    border-bottom: 1px dashed var(--border-color);
+    background-color: var(--bg-screen);
+}
+
+/* 超出列印範圍的列：預覽與列印都不顯示，讓「預覽 = 印出來」永遠成立，
+   不會有半列被紙張邊緣切掉的情況。 */
+body.booklet-preview .exp-beyond-print,
+body.booklet-preview .exp-print-limit {
+    display: none !important;
+}
+
+/* 四折頁口袋版：刷卡頁只是一個窄摺頁，這張 4 欄表格整個超出紙張外
+   （量測結果表格上緣就已經在頁面下緣之下），印出來只會是空白。
+   螢幕上照常可以打字記帳，但預覽與列印直接不放這張表。 */
+body.template-fourfold.booklet-preview .card-notes-printable {
+    display: none !important;
+}
+
+/* 列印/預覽時 hover 與底線提示都不該出現 */
+@media print {
+    .exp-beyond-print,
+    .exp-print-limit,
+    .expense-actions {
+        display: none !important;
+    }
+
+    body.template-fourfold .card-notes-printable {
+        display: none !important;
+    }
+
+    .exp-cell:hover,
+    .exp-cell:focus {
+        background: none !important;
+        box-shadow: none !important;
+    }
+}
+
+.notes-grid-paper {
+    background-color: #FFFFFF;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+}
+
+.notes-grid-paper h4 {
+    font-size: 13px;
+    color: var(--secondary);
+    margin-bottom: 12px;
+}
+
+.grid-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.grid-line {
+    border-bottom: 1px solid #ECEAE3;
+    width: 100%;
+}
+
+/* ==========================================================================
+   手冊編輯器彈窗 (Mascot & Content Editor Modal)
+   ========================================================================== */
+
+.editor-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.editor-overlay.active {
+    display: flex;
+}
+
+.editor-container {
+    background: #FFFFFF;
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 700px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    overflow: hidden;
+    animation: zoomIn 0.2s ease;
+}
+
+@keyframes zoomIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.editor-header {
+    padding: 16px 20px;
+    background: var(--secondary);
+    color: #FFFFFF;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.editor-header h3 {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.close-editor {
+    font-size: 24px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.editor-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-screen);
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: var(--font-kai);
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--text-muted);
+    transition: var(--transition);
+}
+
+.tab-btn.active {
+    background: #FFFFFF;
+    color: var(--primary);
+    border-bottom: 2px solid var(--primary);
+}
+
+.editor-content-box {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.editor-tab-pane {
+    display: none;
+}
+
+.editor-tab-pane.active {
+    display: block;
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-group label {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--secondary);
+}
+
+.form-group input {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    outline: none;
+    font-family: var(--font-kai);
+    font-size: 13px;
+}
+
+.editor-instruction {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+textarea#edit-json-area {
+    width: 100%;
+    height: 280px;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    resize: vertical;
+    outline: none;
+}
+
+.json-actions {
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.error-msg {
+    color: #A33A3A;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.editor-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-screen);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.print-only {
+    display: none;
+}
+
+/* ==========================================================================
+   手冊列印預覽模式 (Screen emulation of print layouts)
+   ========================================================================== */
+
+@media screen {
+    body.booklet-preview {
+        background-color: #404040;
+    }
+
+    body.booklet-preview .sidebar {
+        background-color: #2D2D2D;
+        color: #FFFFFF;
+        border-right-color: #444444;
+    }
+
+    body.booklet-preview .nav-item {
+        color: #CCCCCC;
+    }
+
+    body.booklet-preview .sidebar-brand .brand-text h2 {
+        color: #FFFFFF;
+    }
+
+    body.booklet-preview .content {
+        max-width: 800px;
+        padding: 30px 10px;
+    }
+
+    body.booklet-preview .book-page {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        margin-bottom: 30px;
+        border-radius: 0;
+        box-shadow: 0 5px 25px rgba(0,0,0,0.3);
+        width: 210mm;       /* A4 Width */
+        min-height: 297mm;  /* A4 Height */
+        max-height: 297mm;
+        overflow: hidden;   /* Strict layout overflow control */
+        padding: 18mm 15mm !important;
+        background-color: #FFFFFF !important;
+        position: relative;
+        border: none;
+        /* Same fix as the print block below: forcing every page to display:flex
+           at once re-triggers the base .book-page fadeIn animation for every
+           non-active page simultaneously, causing a visible blank/faded flash
+           across the whole booklet when preview mode is switched on. */
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+    body.booklet-preview .day-layout,
+    body.booklet-preview .cover-layout {
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+    }
+
+    /* FIX: the detailed template's day pages (Page A: photo+info, Page B: 景點簡介)
+       each only have 2 direct children inside .day-layout (header + one content
+       block). The generic rule above stretches .day-layout to the full 297mm
+       page height and uses `justify-content: space-between`, which -- with only
+       2 children -- shoves the second block all the way down to the bottom of
+       the tall page, leaving a huge empty gap under the header. This is exactly
+       what made booklet-preview look "weird" while the print output (which uses
+       `justify-content: flex-start` + `height: auto`, see the @media print rule
+       for .day-layout below) looked normal. Match print's behavior here so both
+       views agree. */
+    body.template-detailed.booklet-preview .day-page-detailed-a .day-layout,
+    body.template-detailed.booklet-preview .day-page-detailed-b .day-layout {
+        height: auto !important;
+        justify-content: flex-start !important;
+    }
+
+    body.booklet-preview .book-page::after {
+        content: "PAGE BREAK (A4)";
+        position: absolute;
+        bottom: 5px;
+        right: 15mm;
+        font-size: 9px;
+        font-weight: 700;
+        color: #AAAAAA;
+        letter-spacing: 1px;
+    }
+}
+
+
+/* ==========================================================================
+   RESPONSIVE DESIGN (Screen view mobile layout)
+   ========================================================================== */
+
+@media (max-width: 992px) {
+    .day-top-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        flex-direction: column;
+        overflow-x: hidden;
+    }
+
+    /* FIX: this toolbar (handbook switcher + template picker + countdown) was a
+       single unwrapping flex row with no mobile handling. On a phone-width
+       viewport it couldn't shrink to fit, so it forced the ENTIRE page wider
+       than the screen, requiring horizontal scrolling to see anything -- the
+       opposite of what a "check it on your phone while traveling" handbook
+       needs. Let it wrap onto multiple lines instead. */
+    .top-info {
+        flex-wrap: wrap;
+        gap: 10px;
+        row-gap: 10px;
+    }
+
+    .handbook-manager {
+        flex-wrap: wrap;
+        width: 100%;
+        row-gap: 8px;
+    }
+
+    .countdown-container,
+    .view-mode-indicator {
+        flex: 0 0 auto;
+    }
+
+    .sidebar {
+        width: 100%;
+        position: relative;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 15px;
+        bottom: auto;
+    }
+
+    .sidebar-menu {
+        flex-direction: row;
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 8px;
+    }
+    
+    .nav-item {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+    
+    .nav-separator {
+        display: none;
+    }
+
+    .content {
+        margin-left: 0;
+        padding: 15px;
+    }
+    
+    .cover-meta {
+        grid-template-columns: 1fr;
+    }
+    
+    .cards-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .packing-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================================================
+   PRINT STYLESHEET (Strict 9-page limit print rules)
+   ========================================================================== */
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 12mm 15mm; /* Page margins */
+    }
+    
+    body {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        font-family: var(--font-kai) !important;
+        font-size: 11.5pt !important; /* Clearer font size */
+        display: block !important;
+        width: 100% !important;
+    }
+    
+    .sidebar,
+    .top-info,
+    .no-print,
+    .sidebar-actions,
+    .add-item-box,
+    .card-calculator-box {
+        display: none !important;
+    }
+    
+    .content {
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        display: block !important;
+    }
+    
+    .book-pages {
+        display: block !important;
+    }
+    
+    /* Strict A4 1-Page limit per section */
+    .book-page {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        page-break-before: always !important;
+        page-break-inside: avoid !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin-bottom: 0 !important;
+        background:
+            radial-gradient(var(--paper-dot) 1.2px, transparent 1.2px),
+            var(--paper-grad) !important;
+        background-size: 16px 16px, 100% 100% !important;
+        width: 100% !important;
+        height: 238mm !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        /* FIX: .book-page carries `animation: fadeIn 0.2s ease-out` from its base
+           (screen) rule. On screen only the active page is display:block, so the
+           animation only ever plays for the page currently being switched to.
+           But this print block forces EVERY page to display:flex at once, which
+           re-triggers that fade-in animation on all of them simultaneously. If the
+           browser/PDF engine renders before the 0.2s finishes, every page except
+           the one already visible on screen is captured mid-fade (or fully
+           transparent) -- printing/exporting as blank pages. Force the animation
+           off and opacity fully on for print so every page is actually visible. */
+        animation: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+    
+    .cover-layout {
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+        padding-top: 5mm !important;
+        padding-bottom: 5mm !important;
+        box-sizing: border-box !important;
+    }
+
+    .day-layout {
+        height: auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+    }
+    
+    /* NOTE: was `.book-page:first-child`, which is fragile -- the dynamically
+       injected day pages live inside their own #dynamic-day-pages wrapper div,
+       so the FIRST day page also counts as ":first-child" of that wrapper and
+       would match this rule too, telling it to avoid breaking before itself
+       right after the packing page. Target the cover page by id instead so
+       only the very first page of the whole book is affected. */
+    #page-cover {
+        page-break-before: avoid !important;
+    }
+    
+    /* Cover Page print layout */
+    .cover-title {
+        font-size: 28pt !important;
+        margin-bottom: 5px !important;
+    }
+    
+    .cover-image-container {
+        width: 360px !important;
+        height: 360px !important;
+        max-width: 360px !important;
+        max-height: 360px !important;
+        margin: 10px auto !important;
+        border-radius: 16px !important;
+    }
+
+    .cover-meta {
+        grid-template-columns: repeat(2, 1fr) !important;
+        background-color: var(--primary-light) !important;
+        border: 1px solid var(--border-color) !important;
+        padding: 8px 12px !important;
+        margin: 5px auto !important;
+        max-width: 420px !important;
+    }
+    
+    /* Printable Table */
+    .print-only {
+        display: block !important;
+    }
+    
+    .card-notes-printable {
+        margin-top: 10px !important;
+    }
+    
+    /* 列印時只調字級與間距；表格外觀本體已移到全域區塊 (見 .print-table)，
+       這樣螢幕 / 預覽 / 列印看到的是同一張表。 */
+    .print-tr {
+        padding: 6px !important;
+        font-size: 10pt !important;
+    }
+    
+    .cards-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 15px !important;
+        margin-bottom: 10px !important;
+    }
+
+    .card-detail-box {
+        padding: 12px !important;
+    }
+
+    .packing-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 15px !important;
+        margin-top: 10px !important;
+    }
+
+    .packing-category {
+        padding: 10px !important;
+    }
+
+    .packing-category h3 {
+        font-size: 11pt !important;
+        margin-bottom: 8px !important;
+    }
+
+    .check-item {
+        font-size: 10pt !important;
+        gap: 6px !important;
+    }
+
+    .flight-lodging-section {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 15px !important;
+        margin-top: 10px !important;
+    }
+    
+    .flight-card, .lodging-card {
+        padding: 10px !important;
+        box-shadow: none !important;
+    }
+    
+    .flight-card h3, .lodging-card h3 {
+        font-size: 11pt !important;
+        margin-bottom: 8px !important;
+    }
+    
+    .flight-grid {
+        gap: 10px !important;
+    }
+    
+    .route-header {
+        font-size: 9.5pt !important;
+        margin-bottom: 2px !important;
+    }
+    
+    .detail-row {
+        font-size: 8.5pt !important;
+        padding-bottom: 1px !important;
+    }
+    
+    .lodging-item {
+        padding: 4px 8px !important;
+    }
+    
+    .hotel-dates {
+        font-size: 8.5pt !important;
+    }
+    
+    .hotel-name {
+        font-size: 9pt !important;
+    }
+    
+    /* Daily layout & Timeline print density */
+    .day-layout {
+        gap: 8px !important;
+    }
+    
+    .day-header {
+        padding-bottom: 5px !important;
+        margin-bottom: 5px !important;
+    }
+    
+    .day-date {
+        padding: 4px 8px !important;
+        min-width: 60px !important;
+    }
+    
+    .day-num {
+        font-size: 11pt !important;
+    }
+    
+    .day-calendar {
+        font-size: 8pt !important;
+    }
+    
+    .day-title {
+        font-size: 15pt !important;
+    }
+    
+    .day-top-grid {
+        display: grid !important;
+        grid-template-columns: 1.15fr 1fr !important;
+        gap: 15px !important;
+        margin-top: 5px !important;
+        margin-bottom: 10px !important;
+        align-items: start !important;
+    }
+    
+    .day-top-grid .day-hero-image {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        max-height: 380px !important;
+        padding: 6px 6px 16px 6px !important;
+        margin: 0 !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.05) !important;
+        transform: none !important;
+        overflow: hidden !important;
+    }
+
+    .day-top-grid .day-hero-image .washi-tape {
+        width: 60px !important;
+        height: 14px !important;
+        top: -6px !important;
+    }
+
+    .day-bottom-timeline {
+        width: 100% !important;
+        margin-top: 5px !important;
+    }
+
+    .day-bottom-timeline .day-timeline {
+        background-color: var(--panel-bg) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: var(--radius-md) !important;
+        padding: 12px 18px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    
+    .day-art {
+        width: 100% !important;
+        height: auto !important;
+        max-height: 360px !important;
+        aspect-ratio: auto !important;
+        object-fit: cover !important;
+        background-color: var(--panel-bg) !important;
+    }
+    
+    .info-card {
+        padding: 8px !important;
+        margin-bottom: 6px !important;
+    }
+
+    .info-card h4 {
+        font-size: 10pt !important;
+        margin-bottom: 4px !important;
+    }
+
+    .info-list li {
+        font-size: 8.5pt !important;
+        margin-bottom: 3px !important;
+    }
+
+
+
+    .timeline-title {
+        font-size: 11pt !important;
+        margin-bottom: 8px !important;
+    }
+
+    .timeline-item {
+        padding-bottom: 5px !important;
+        gap: 10px !important;
+    }
+
+    .day-timeline.no-time .timeline-item:not(:last-child)::after {
+        left: 4px !important;
+    }
+    
+    .time {
+        width: 55px !important;
+        font-size: 9.5pt !important;
+    }
+
+    .timeline-desc h5 {
+        font-size: 10pt !important;
+        margin-bottom: 1px !important;
+    }
+    
+    .timeline-desc p {
+        font-size: 8.5pt !important;
+        line-height: 1.25 !important;
+    }
+
+    .notes-container {
+        gap: 15px;
+    }
+
+    /* Stamps Page Print Layout */
+    .blank-stamp-area {
+        border: none !important;
+        height: 178mm !important;
+        background-color: var(--panel-bg) !important;
+        margin-top: 10px !important;
+    }
+    
+    .blank-stamp-area::after {
+        content: "" !important;
+        display: none !important;
+    }
+    
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+
+/* ==========================================================================
+   PAGE 9: 紀念戳章專用收集頁樣式
+   ========================================================================== */
+
+.stamps-only-page {
+    background-image: none !important;
+    background: var(--paper-grad) !important;
+}
+
+.blank-stamp-area {
+    background-color: var(--panel-bg) !important;
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    margin-top: 20px;
+    height: 500px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    position: relative;
+}
+
+.blank-stamp-area::after {
+    content: "📷 實體蓋章處 (列印時此虛線框將隱藏)";
+    font-family: var(--font-kai);
+    opacity: 0.5;
+}
+
+/* ==========================================================================
+   V4.0 排版版型切換樣式 (Template Layout Styles)
+   ========================================================================== */
+
+/* 1. 雙頁詳細版 (template-detailed) */
+
+/* FIX: the generic `body.booklet-preview .content { max-width: 800px }` rule
+   further down was sized for the single A4 panel templates (compact /
+   text-heavy). For template-detailed the two A5 panels need ~1140px to sit
+   side by side (561px x 2 + gap) — inside an 800px column they could never
+   fit next to each other and always wrapped onto separate rows, which is
+   the "上下" stacking the left-right pairing fix above could not solve by
+   itself. Widen the column specifically for this template. */
+body.template-detailed.booklet-preview .content {
+    max-width: 1260px !important;
+}
+
+/* The paired A5 spread needs ~1140px to sit side by side; on a browser
+   window narrower than that it would be silently clipped by the base
+   `body { overflow-x: hidden }` rule instead of just scrolling into view.
+   Let this specific view scroll horizontally so nothing gets lost. */
+body.template-detailed.booklet-preview {
+    overflow-x: auto !important;
+}
+
+/* Booklet Preview Mode on Screen */
+body.template-detailed.booklet-preview .book-pages {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 15px !important;
+    justify-content: center !important;
+    background-color: #525659 !important;
+    padding: 20px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* FIX: the Day1-5 pages are injected into a plain <div id="dynamic-day-pages">
+   wrapper (see index.html), which sits between .book-pages (the flex
+   container) and the individual .book-page sections. A plain block div
+   is not a flex item's transparent pass-through, so the day pages fell
+   out of the flex-wrap pairing and stacked top-to-bottom instead of
+   pairing left-right like every other spread. display:contents makes the
+   wrapper invisible to layout so its children become direct flex items
+   of .book-pages again, restoring the left-right A/B pairing on screen
+   (print already worked because it uses float instead of flex). */
+body.template-detailed.booklet-preview #dynamic-day-pages {
+    display: contents !important;
+}
+
+body.template-detailed.booklet-preview .book-page {
+    display: block !important;
+    box-sizing: border-box !important;
+    background-color: #FFFFFF !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3) !important;
+    margin-bottom: 20px !important;
+    overflow: hidden !important;
+    width: 148.5mm !important; /* Default A5 size panels */
+    height: 210mm !important;
+    min-height: 210mm !important;
+    max-height: 210mm !important;
+    padding: 10mm 8mm !important;
+    border-radius: 0 !important;
+    border: none !important;
+    position: relative !important;
+}
+
+/* Full-width sheets (Cover is now A5, Cards and Packing are full A4 landscape) */
+body.template-detailed.booklet-preview #page-cards,
+body.template-detailed.booklet-preview #page-packing {
+    width: 297mm !important;
+    padding: 10mm 15mm !important;
+}
+
+body.template-detailed.booklet-preview .day-page-detailed-a {
+    border-right: 1px dashed #CCCCCC !important;
+}
+
+body.template-detailed.booklet-preview .day-page-detailed-b {
+    margin-right: 40px !important; /* Visual page separation */
+}
+
+/* Interactive webpage view (not booklet-preview, not print): clicking a day
+   in the nav marks BOTH page-dayN-a and page-dayN-b .active at once (see
+   switchPage() in app.js), same as preview/print. Without pairing CSS here
+   they just stacked as two full-width blocks — the one place that still
+   looked different from what preview/print show. Give this view the same
+   left-right spread, sized responsively (%) instead of print's fixed mm,
+   since this is the page people browse on a laptop or phone while
+   traveling, not a paper simulation. */
+body.template-detailed:not(.booklet-preview) #dynamic-day-pages {
+    display: contents;
+}
+
+body.template-detailed:not(.booklet-preview) .book-pages {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    /* 0 here on purpose: the day-a/day-b pair below butts together with no
+       gap so it reads as one card (see comment below). Every other page is
+       alone on its row (flex-basis 100%), so this gap never shows for them
+       anyway. */
+    gap: 0;
+}
+
+body.template-detailed:not(.booklet-preview) .book-page.active {
+    flex: 1 1 100%;
+    width: 100%;
+}
+
+/* Every other page (cover / cards / packing / notes) is ONE .book-page
+   element carrying ONE border+shadow "paper card" frame, even when its
+   content is internally split into two CSS-grid columns (cards, packing).
+   The day pages are the odd one out: -a and -b are two SEPARATE .book-page
+   elements, so pairing them with a gap produced two distinct bordered
+   boxes with a gap of plain background between — a visibly different
+   "frame shape" than every other page, which read as the border jumping
+   around as you click through the nav. Butt them together with no gap and
+   only round/shadow the outer edges so the pair reads as the same single
+   card-with-a-divider language as cards/packing, instead of two cards. */
+body.template-detailed:not(.booklet-preview) .day-page-detailed-a.active,
+body.template-detailed:not(.booklet-preview) .day-page-detailed-b.active {
+    flex: 1 1 50%;
+    width: 50%;
+    box-shadow: var(--shadow) !important;
+}
+
+body.template-detailed:not(.booklet-preview) .day-page-detailed-a.active {
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg) !important;
+    border-right: none !important;
+}
+
+body.template-detailed:not(.booklet-preview) .day-page-detailed-b.active {
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0 !important;
+    border-left: 1px dashed var(--border-color) !important;
+}
+
+@media (max-width: 900px) {
+    body.template-detailed:not(.booklet-preview) .day-page-detailed-a.active,
+    body.template-detailed:not(.booklet-preview) .day-page-detailed-b.active {
+        flex: 1 1 100%;
+        width: 100%;
+        border-radius: var(--radius-lg) !important;
+        border-right: 1px solid var(--border-color) !important;
+        border-left: 1px solid var(--border-color) !important;
+        box-shadow: var(--shadow) !important;
+    }
+    /* stacked full-width on phone, so restore the gap the shared .book-pages
+       (gap:0, meant for the side-by-side desktop pair) removed */
+    body.template-detailed:not(.booklet-preview) .day-page-detailed-a.active {
+        margin-bottom: 20px !important;
+    }
+}
+
+/* Print Mode Overrides */
+@media print {
+    body.template-detailed {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        display: block !important;
+        width: 297mm !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    body.template-detailed .content {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 297mm !important;
+        max-width: 297mm !important;
+        display: block !important;
+    }
+
+    body.template-detailed .book-pages {
+        display: block !important;
+        width: 297mm !important;
+        height: auto !important;
+    }
+
+    body.template-detailed .book-page {
+        display: block !important;
+        float: left !important;
+        width: 148.5mm !important; /* A5 size */
+        height: 210mm !important;
+        min-height: 210mm !important;
+        max-height: 210mm !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding: 10mm 8mm !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        background: 
+            radial-gradient(var(--paper-dot-faint) 1.2px, transparent 1.2px), 
+            var(--paper-grad) !important;
+        background-size: 16px 16px, 100% 100% !important;
+        page-break-before: auto !important;
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+        overflow: hidden !important;
+    }
+
+    body.template-detailed #page-cover {
+        page-break-before: avoid !important;
+    }
+
+    body.template-detailed #page-cards,
+    body.template-detailed #page-packing {
+        display: grid !important;
+        /* FIX: was 1.15fr 1fr, which put the physical center-fold line (at
+           148.5mm, exactly half of the 297mm sheet) inside the left
+           column's content instead of in the gap between columns — so
+           folding the printed sheet in half cut straight through the
+           Uniopen card box / packing categories. Equal 1fr columns put the
+           gap's midpoint exactly on the fold. */
+        grid-template-columns: 1fr 1fr !important;
+        gap: 25px !important;
+        align-content: start !important;
+        /* FIX: without this, each grid item (cards-grid, card-notes-printable,
+           packing-grid, flight-lodging-section) stretches to match the tallest
+           column in its row, which left mysterious blank space inside the
+           shorter boxes (e.g. the packing categories, the Uniopen card box). */
+        align-items: start !important;
+        width: 297mm !important; /* Full width landscape sheet */
+        page-break-before: always !important;
+        page-break-after: always !important;
+        padding: 10mm 15mm !important;
+    }
+
+    body.template-detailed #page-cards .page-header-container,
+    body.template-detailed #page-packing .page-header-container {
+        grid-column: span 2 !important;
+        margin-bottom: 5px !important;
+    }
+
+    body.template-detailed #page-cards .cards-grid {
+        grid-column: 1 !important;
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+
+    body.template-detailed #page-cards .info-alert {
+        grid-column: 1 !important;
+        margin-top: 5px !important;
+        padding: 8px 12px !important;
+        font-size: 8.5pt !important;
+    }
+
+    body.template-detailed #page-cards .card-notes-printable {
+        grid-column: 2 !important;
+        grid-row: 2 / span 3 !important;
+        margin-top: 0 !important;
+        display: block !important;
+    }
+
+    body.template-detailed #page-cards .print-tr {
+        padding: 4px !important;
+        font-size: 8pt !important;
+    }
+
+    body.template-detailed #page-packing .packing-grid {
+        grid-column: 1 !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+        margin-top: 0 !important;
+    }
+
+    body.template-detailed #page-packing .packing-category {
+        padding: 6px !important;
+    }
+
+    body.template-detailed #page-packing .packing-category h3 {
+        font-size: 9pt !important;
+        margin-bottom: 4px !important;
+    }
+
+    body.template-detailed #page-packing .check-item {
+        font-size: 8pt !important;
+        gap: 4px !important;
+    }
+
+    body.template-detailed #page-packing .add-item-box {
+        grid-column: 1 !important;
+        margin-top: 5px !important;
+    }
+
+    body.template-detailed #page-packing .flight-lodging-section {
+        grid-column: 2 !important;
+        grid-row: 2 / span 2 !important;
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+        margin-top: 0 !important;
+    }
+
+    body.template-detailed .day-page-detailed-a {
+        border-right: 1px dashed #CCCCCC !important;
+    }
+
+    body.template-detailed .day-page-detailed-b {
+        page-break-after: always !important;
+    }
+}
+
+/* Card Page Left/Right Column Split Layout (Preview & Print) */
+body.template-detailed.booklet-preview #page-cards,
+body.template-detailed #page-cards.active {
+    display: grid !important;
+    /* FIX: equal columns so the gap (and the physical fold line) sits
+       centered instead of cutting through the left column's content —
+       see the matching print-mode comment above. */
+    grid-template-columns: 1fr 1fr !important;
+    gap: 25px !important;
+    align-content: start !important;
+    /* FIX: prevents cards-grid / card-notes-printable from stretching to
+       match the taller column, which was leaving blank space inside the
+       shorter card box. */
+    align-items: start !important;
+}
+
+body.template-detailed.booklet-preview #page-cards .page-header-container,
+body.template-detailed #page-cards.active .page-header-container {
+    grid-column: span 2 !important;
+    margin-bottom: 5px !important;
+}
+
+body.template-detailed.booklet-preview #page-cards .cards-grid,
+body.template-detailed #page-cards.active .cards-grid {
+    grid-column: 1 !important;
+    grid-template-columns: 1fr !important; /* Stack Card 1 and Card 2 vertically */
+    gap: 10px !important;
+}
+
+body.template-detailed.booklet-preview #page-cards .info-alert,
+body.template-detailed #page-cards.active .info-alert {
+    grid-column: 1 !important;
+    margin-top: 5px !important;
+    padding: 8px 12px !important;
+    font-size: 8.5pt !important;
+}
+
+body.template-detailed.booklet-preview #page-cards .card-notes-printable,
+body.template-detailed #page-cards.active .card-notes-printable {
+    grid-column: 2 !important;
+    grid-row: 2 / span 3 !important;
+    margin-top: 0 !important;
+    display: block !important;
+}
+
+body.template-detailed.booklet-preview #page-cards .print-tr,
+body.template-detailed #page-cards.active .print-tr {
+    padding: 4px !important;
+    font-size: 8pt !important;
+}
+
+/* Packing Page Left/Right Column Split Layout (Preview & Print) */
+body.template-detailed.booklet-preview #page-packing,
+body.template-detailed #page-packing.active {
+    display: grid !important;
+    /* FIX: equal columns so the gap (and the physical fold line) sits
+       centered instead of cutting through the packing categories —
+       see the matching print-mode comment on #page-cards above. */
+    grid-template-columns: 1fr 1fr !important;
+    gap: 25px !important;
+    align-content: start !important;
+    /* FIX: prevents packing-grid / flight-lodging-section from stretching to
+       match the taller column, which was leaving blank space inside the
+       shorter packing-category boxes. */
+    align-items: start !important;
+}
+
+body.template-detailed.booklet-preview #page-packing .page-header-container,
+body.template-detailed #page-packing.active .page-header-container {
+    grid-column: span 2 !important;
+    margin-bottom: 5px !important;
+}
+
+body.template-detailed.booklet-preview #page-packing .packing-grid,
+body.template-detailed #page-packing.active .packing-grid {
+    grid-column: 1 !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin-top: 0 !important;
+}
+
+body.template-detailed.booklet-preview #page-packing .packing-category,
+body.template-detailed #page-packing.active .packing-category {
+    padding: 6px !important;
+}
+
+body.template-detailed.booklet-preview #page-packing .packing-category h3,
+body.template-detailed #page-packing.active .packing-category h3 {
+    font-size: 9pt !important;
+    margin-bottom: 4px !important;
+}
+
+body.template-detailed.booklet-preview #page-packing .check-item,
+body.template-detailed #page-packing.active .check-item {
+    font-size: 8pt !important;
+    gap: 4px !important;
+}
+
+body.template-detailed.booklet-preview #page-packing .add-item-box,
+body.template-detailed #page-packing.active .add-item-box {
+    grid-column: 1 !important;
+    margin-top: 5px !important;
+}
+
+body.template-detailed.booklet-preview #page-packing .flight-lodging-section,
+body.template-detailed #page-packing.active .flight-lodging-section {
+    grid-column: 2 !important;
+    grid-row: 2 / span 2 !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important; /* Stack vertically */
+    gap: 10px !important;
+    margin-top: 0 !important;
+}
+
+body.template-detailed.booklet-preview .flight-card,
+body.template-detailed.booklet-preview .lodging-card,
+body.template-detailed .flight-card,
+body.template-detailed .lodging-card {
+    padding: 8px !important;
+}
+
+/* Cover & Notes Page Adjustments (Preview & Print) */
+body.template-detailed.booklet-preview #page-cover,
+body.template-detailed #page-cover {
+    width: 148.5mm !important;
+    padding: 10mm 8mm !important;
+}
+
+body.template-detailed.booklet-preview .cover-image-container,
+body.template-detailed .cover-image-container {
+    width: 360px !important;
+    height: 360px !important;
+    max-width: 360px !important;
+    max-height: 360px !important;
+    margin: 10px auto !important;
+}
+
+body.template-detailed.booklet-preview .cover-title,
+body.template-detailed .cover-title {
+    font-size: 20pt !important;
+    margin-bottom: 5px !important;
+}
+
+body.template-detailed.booklet-preview #page-notes .blank-stamp-area,
+body.template-detailed #page-notes .blank-stamp-area {
+    height: 140mm !important;
+    margin-top: 10px !important;
+}
+
+/* Daily Page Elements Adjustments (Preview & Print) */
+body.template-detailed.booklet-preview .day-page-detailed-a .day-top-grid,
+body.template-detailed .day-page-detailed-a .day-top-grid {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+}
+
+body.template-detailed.booklet-preview .day-page-detailed-a .day-hero-image,
+body.template-detailed .day-page-detailed-a .day-hero-image {
+    /* Enlarged to fill the panel width (was width:fit-content, which shrank
+       the frame down to the photo's natural size and left the rest of the
+       column blank) and locked to a 16:9 window so every day photo — going
+       forward — crops to the same proportions as the reference mockup. */
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    padding: 8px 8px 8px 8px !important;
+    margin: 0 auto 10px auto !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05) !important;
+    background-color: var(--panel-bg) !important;
+    border: 1px solid #EAEAEA !important;
+    display: block !important;
+    box-sizing: border-box !important;
+}
+
+body.template-detailed.booklet-preview .day-page-detailed-a .day-hero-image .day-art,
+body.template-detailed .day-page-detailed-a .day-hero-image .day-art {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    aspect-ratio: 16 / 9 !important;
+    object-fit: cover !important;
+}
+
+body.template-detailed.booklet-preview .info-card,
+body.template-detailed .info-card {
+    padding: 6px 10px !important;
+    margin-bottom: 4px !important;
+}
+
+body.template-detailed.booklet-preview .info-list li,
+body.template-detailed .info-list li {
+    font-size: 8pt !important;
+}
+
+body.template-detailed.booklet-preview .day-timeline,
+body.template-detailed .day-timeline {
+    padding: 8px 12px !important;
+}
+
+body.template-detailed.booklet-preview .timeline-item,
+body.template-detailed .timeline-item {
+    padding-bottom: 8px !important;
+}
+
+body.template-detailed.booklet-preview .timeline-desc h5,
+body.template-detailed .timeline-desc h5 {
+    font-size: 9pt !important;
+}
+
+body.template-detailed.booklet-preview .timeline-desc p,
+body.template-detailed .timeline-desc p {
+    font-size: 8pt !important;
+}
+
+/* 2. 單頁強效純文字版 (template-text-heavy) */
+body.template-text-heavy .day-hero-image {
+    display: none !important;
+}
+body.template-text-heavy .day-top-grid {
+    grid-template-columns: 1fr !important;
+}
+@media print {
+    body.template-text-heavy .day-hero-image {
+        display: none !important;
+    }
+    body.template-text-heavy .day-top-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* 3. A4 四折頁口袋手冊版 (template-fourfold) */
+
+/* FIX: same 800px-column issue as template-detailed above — widen the
+   column so the four 74.25mm quarter-panels (and the full 297mm cards /
+   packing sheets) have room to sit next to each other in preview. */
+body.template-fourfold.booklet-preview .content {
+    max-width: 1260px !important;
+}
+
+/* Same reasoning as template-detailed above: let a narrow window scroll
+   horizontally instead of clipping the wide quarter-panel spread. */
+body.template-fourfold.booklet-preview {
+    overflow-x: auto !important;
+}
+
+/* Booklet Preview (Screen Mockup) */
+body.template-fourfold.booklet-preview .book-pages {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 15px !important;
+    justify-content: center !important;
+    background-color: #525659 !important;
+    padding: 20px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* FIX: same #dynamic-day-pages wrapper issue as template-detailed — without
+   this the day pages stack instead of flowing left-right in the preview. */
+body.template-fourfold.booklet-preview #dynamic-day-pages {
+    display: contents !important;
+}
+
+body.template-fourfold.booklet-preview .book-page {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    width: 74.25mm !important;
+    height: 210mm !important;
+    min-height: 210mm !important;
+    max-height: 210mm !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 8mm 4mm !important;
+    border-right: 1px dashed #CCCCCC !important;
+    border-left: none !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    border-radius: 0 !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3) !important;
+    background: 
+        radial-gradient(var(--paper-dot-faint) 1.2px, transparent 1.2px), 
+        var(--paper-grad) !important;
+    background-size: 16px 16px, 100% 100% !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+body.template-fourfold.booklet-preview .book-page:nth-child(4n) {
+    border-right: none !important;
+    margin-right: 40px !important; /* Visual page separation */
+}
+
+body.template-fourfold.booklet-preview .book-page::after {
+    content: "FOLD LINE" !important;
+    position: absolute !important;
+    bottom: 3px !important;
+    right: 2px !important;
+    font-size: 6px !important;
+    color: #999999 !important;
+    opacity: 0.7 !important;
+}
+
+body.template-fourfold.booklet-preview .book-page:nth-child(4n)::after {
+    content: "SHEET BREAK" !important;
+    right: 5px !important;
+    color: #FF6B6B !important;
+}
+
+/* Booklet Preview Element Scaling */
+body.template-fourfold.booklet-preview .cover-meta,
+body.template-fourfold.booklet-preview .cards-grid,
+body.template-fourfold.booklet-preview .packing-grid,
+body.template-fourfold.booklet-preview .flight-lodging-section,
+body.template-fourfold.booklet-preview .day-top-grid {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+}
+
+body.template-fourfold.booklet-preview .cover-image-container {
+    width: 45mm !important;
+    height: 45mm !important;
+    max-width: 45mm !important;
+    max-height: 45mm !important;
+    margin: 5px auto !important;
+}
+
+body.template-fourfold.booklet-preview .day-hero-image {
+    max-height: 120px !important;
+    padding: 4px !important;
+    margin: 0 auto !important;
+}
+
+body.template-fourfold.booklet-preview .day-hero-image .day-art {
+    max-height: 100px !important;
+}
+
+body.template-fourfold.booklet-preview h1,
+body.template-fourfold.booklet-preview .cover-title {
+    font-size: 16pt !important;
+    margin-bottom: 3px !important;
+}
+
+body.template-fourfold.booklet-preview h2,
+body.template-fourfold.booklet-preview .day-title {
+    font-size: 10.5pt !important;
+}
+
+body.template-fourfold.booklet-preview h3 {
+    font-size: 9pt !important;
+}
+
+body.template-fourfold.booklet-preview h4 {
+    font-size: 8.5pt !important;
+}
+
+body.template-fourfold.booklet-preview .day-num {
+    font-size: 8.5pt !important;
+}
+
+body.template-fourfold.booklet-preview .day-calendar {
+    font-size: 7pt !important;
+}
+
+body.template-fourfold.booklet-preview .time {
+    font-size: 7.5pt !important;
+    width: 45px !important;
+}
+
+body.template-fourfold.booklet-preview .timeline-desc h5 {
+    font-size: 8pt !important;
+}
+
+body.template-fourfold.booklet-preview .timeline-desc p {
+    font-size: 7.5pt !important;
+    line-height: 1.25 !important;
+}
+
+body.template-fourfold.booklet-preview .info-list li,
+body.template-fourfold.booklet-preview .info-card p {
+    font-size: 7.5pt !important;
+}
+
+body.template-fourfold.booklet-preview .check-item {
+    font-size: 8pt !important;
+}
+
+body.template-fourfold.booklet-preview .lodging-item,
+body.template-fourfold.booklet-preview .flight-grid {
+    font-size: 7.5pt !important;
+}
+
+body.template-fourfold.booklet-preview .route-header {
+    font-size: 8.5pt !important;
+}
+
+body.template-fourfold.booklet-preview .detail-row {
+    font-size: 7.5pt !important;
+}
+
+body.template-fourfold.booklet-preview .hotel-dates,
+body.template-fourfold.booklet-preview .hotel-name {
+    font-size: 7.5pt !important;
+}
+
+body.template-fourfold.booklet-preview .washi-tape {
+    width: 40px !important;
+    height: 10px !important;
+    top: -4px !important;
+}
+
+body.template-fourfold.booklet-preview .packing-grid {
+    margin-top: 5px !important;
+    gap: 6px !important;
+}
+
+body.template-fourfold.booklet-preview .packing-category {
+    padding: 6px !important;
+}
+
+body.template-fourfold.booklet-preview .cover-badge {
+    font-size: 7pt !important;
+    padding: 2px 6px !important;
+}
+
+body.template-fourfold.booklet-preview .cover-dates {
+    font-size: 8pt !important;
+}
+
+body.template-fourfold.booklet-preview .cover-flight {
+    font-size: 7.5pt !important;
+}
+
+body.template-fourfold.booklet-preview .day-header {
+    padding-bottom: 3px !important;
+    margin-bottom: 4px !important;
+    gap: 5px !important;
+}
+
+body.template-fourfold.booklet-preview .day-top-grid {
+    margin-bottom: 5px !important;
+}
+
+body.template-fourfold.booklet-preview .info-card {
+    padding: 6px !important;
+    margin-bottom: 3px !important;
+}
+
+body.template-fourfold.booklet-preview .day-timeline {
+    padding: 6px 10px !important;
+}
+
+
+/* Print Mode overrides for pocket booklet */
+@media print {
+    body.template-fourfold {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        display: block !important;
+        width: 297mm !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    body.template-fourfold .content {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 297mm !important;
+        max-width: 297mm !important;
+        display: block !important;
+    }
+
+    body.template-fourfold .book-pages {
+        display: block !important;
+        width: 297mm !important;
+        height: auto !important;
+    }
+
+    body.template-fourfold .book-page {
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        float: left !important;
+        width: 74.25mm !important;
+        height: 210mm !important;
+        min-height: 210mm !important;
+        max-height: 210mm !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding: 8mm 4mm !important;
+        border-right: 1px dashed #CCCCCC !important;
+        border-left: none !important;
+        border-top: none !important;
+        border-bottom: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        background: 
+            radial-gradient(var(--paper-dot-faint) 1.2px, transparent 1.2px), 
+            var(--paper-grad) !important;
+        background-size: 16px 16px, 100% 100% !important;
+        page-break-before: auto !important;
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+        overflow: hidden !important;
+    }
+
+    body.template-fourfold .book-page:first-child {
+        page-break-before: avoid !important;
+    }
+
+    body.template-fourfold .book-page:nth-child(4n) {
+        page-break-after: always !important;
+        border-right: none !important;
+    }
+
+    /* Print element adjustments under template-fourfold */
+    body.template-fourfold .cover-meta,
+    body.template-fourfold .cards-grid,
+    body.template-fourfold .packing-grid,
+    body.template-fourfold .flight-lodging-section,
+    body.template-fourfold .day-top-grid {
+        grid-template-columns: 1fr !important;
+        gap: 6px !important;
+    }
+
+    body.template-fourfold .cover-image-container {
+        width: 45mm !important;
+        height: 45mm !important;
+        max-width: 45mm !important;
+        max-height: 45mm !important;
+        margin: 5px auto !important;
+    }
+
+    body.template-fourfold .day-hero-image {
+        max-height: 120px !important;
+        padding: 4px !important;
+        margin: 0 auto !important;
+    }
+
+    body.template-fourfold .day-hero-image .day-art {
+        max-height: 100px !important;
+    }
+
+    body.template-fourfold h1,
+    body.template-fourfold .cover-title {
+        font-size: 16pt !important;
+        margin-bottom: 3px !important;
+    }
+
+    body.template-fourfold h2,
+    body.template-fourfold .day-title {
+        font-size: 10.5pt !important;
+    }
+
+    body.template-fourfold h3 {
+        font-size: 9pt !important;
+    }
+
+    body.template-fourfold h4 {
+        font-size: 8.5pt !important;
+    }
+
+    body.template-fourfold .day-num {
+        font-size: 8.5pt !important;
+    }
+
+    body.template-fourfold .day-calendar {
+        font-size: 7pt !important;
+    }
+
+    body.template-fourfold .time {
+        font-size: 7.5pt !important;
+        width: 45px !important;
+    }
+
+    body.template-fourfold .timeline-desc h5 {
+        font-size: 8pt !important;
+    }
+
+    body.template-fourfold .timeline-desc p {
+        font-size: 7.5pt !important;
+        line-height: 1.25 !important;
+    }
+
+    body.template-fourfold .info-list li,
+    body.template-fourfold .info-card p {
+        font-size: 7.5pt !important;
+    }
+
+    body.template-fourfold .check-item {
+        font-size: 8pt !important;
+    }
+
+    body.template-fourfold .lodging-item,
+    body.template-fourfold .flight-grid {
+        font-size: 7.5pt !important;
+    }
+
+    body.template-fourfold .route-header {
+        font-size: 8.5pt !important;
+    }
+
+    body.template-fourfold .detail-row {
+        font-size: 7.5pt !important;
+    }
+
+    body.template-fourfold .hotel-dates,
+    body.template-fourfold .hotel-name {
+        font-size: 7.5pt !important;
+    }
+
+    body.template-fourfold .washi-tape {
+        width: 40px !important;
+        height: 10px !important;
+        top: -4px !important;
+    }
+
+    body.template-fourfold .packing-grid {
+        margin-top: 5px !important;
+        gap: 6px !important;
+    }
+
+    body.template-fourfold .packing-category {
+        padding: 6px !important;
+    }
+
+    body.template-fourfold .cover-badge {
+        font-size: 7pt !important;
+        padding: 2px 6px !important;
+    }
+
+    body.template-fourfold .cover-dates {
+        font-size: 8pt !important;
+    }
+
+    body.template-fourfold .cover-flight {
+        font-size: 7.5pt !important;
+    }
+
+    body.template-fourfold .day-header {
+        padding-bottom: 3px !important;
+        margin-bottom: 4px !important;
+        gap: 5px !important;
+    }
+
+    body.template-fourfold .day-top-grid {
+        margin-bottom: 5px !important;
+    }
+
+    body.template-fourfold .info-card {
+        padding: 6px !important;
+        margin-bottom: 3px !important;
+    }
+
+    body.template-fourfold .day-timeline {
+        padding: 6px 10px !important;
+    }
+}
+
+/* ==========================================================================
+   12. Gallery Selection Modal (V4.6)
+   ========================================================================== */
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 5px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    margin-bottom: 20px;
+    background-color: #FFFFFF;
+}
+
+.gallery-item {
+    border: 2px solid transparent;
+    border-radius: 4px;
+    padding: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    background: #F9F9F9;
+}
+
+.gallery-item:hover {
+    border-color: var(--primary);
+    background: #FFFFFF;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 2px;
+    margin-bottom: 4px;
+    background-color: #EEEEEE;
+}
+
+.gallery-item span {
+    font-size: 7.5pt;
+    color: #666666;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 2px;
+}
+
+/* ==========================================================================
+   13. Dynamic Custom Pages & Travel Notes (V4.8)
+   ========================================================================== */
+.stamps-only-page, .travel-notes-page {
+    padding-top: 15px !important;
+}
+
+.custom-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0 !important;
+    margin-bottom: 10px !important;
+    border-bottom: 2px solid var(--primary-light);
+    padding-bottom: 4px !important;
+}
+
+.custom-page-header h2 {
+    margin: 0;
+    font-size: 16pt;
+    color: var(--primary);
+}
+
+.btn-delete-page {
+    background: #FF4D4D !important;
+    color: #FFFFFF !important;
+    font-size: 8.5pt !important;
+    padding: 5px 10px !important;
+    border-radius: 4px !important;
+    cursor: pointer;
+    border: none !important;
+    width: auto !important;
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    font-weight: bold;
+    transition: background 0.2s ease;
+}
+
+.btn-delete-page:hover {
+    background: #E03333 !important;
+}
+
+.travel-notes-page {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.notes-photo-placeholder {
+    width: 100%;
+    height: 260px;
+    border: 2px dashed #C0B0A0;
+    border-radius: var(--radius-md);
+    background-color: rgba(255,255,255,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.notes-photo-placeholder:hover {
+    border-color: var(--primary);
+    background-color: #FFFFFF;
+}
+
+.notes-photo-placeholder img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.notes-photo-placeholder::after {
+    content: "📷 點擊選擇自訂照片貼處";
+    color: #8C7C6C;
+    font-size: 10pt;
+    font-weight: 500;
+}
+
+.notes-photo-placeholder.has-image::after {
+    display: none;
+}
+
+.notes-text-area {
+    width: 100%;
+    height: 200px;
+    background: repeating-linear-gradient(transparent, transparent 27px, #EAEAEA 27px, #EAEAEA 28px) !important;
+    background-size: 100% 28px !important;
+    line-height: 28px !important;
+    font-size: 11pt !important;
+    font-family: inherit !important;
+    padding: 0 10px !important;
+    border: none !important;
+    resize: none !important;
+    outline: none !important;
+    color: #333333 !important;
+    box-sizing: border-box !important;
+}
+
+/* Print Specific Rules for Custom Pages */
+@media print {
+    body.template-detailed #dynamic-custom-pages .book-page {
+        display: block !important;
+        float: left !important;
+        width: 148.5mm !important;
+        height: 210mm !important;
+        min-height: 210mm !important;
+        max-height: 210mm !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding: 10mm 8mm !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+        page-break-before: auto !important;
+        page-break-inside: avoid !important;
+        page-break-after: avoid !important;
+        overflow: hidden !important;
+    }
+    
+    /* Alternating page break rule to keep A5 panels pairs aligned on A4 landscape sheets */
+    body.template-detailed #dynamic-custom-pages .book-page:nth-child(even) {
+        page-break-after: always !important;
+    }
+
+    .notes-photo-placeholder {
+        background-color: #FFFFFF !important;
+        border: 1.5px dashed #A09080 !important;
+    }
+
+    .notes-text-area {
+        background: repeating-linear-gradient(transparent, transparent 27px, #DDDDDD 27px, #DDDDDD 28px) !important;
+        background-size: 100% 28px !important;
+    }
+}
+
+/* ==========================================================================
+   COMPACT TEMPLATE (單頁經典版) - 每日行程改為真正的「四象限」排版：
+   左上滿版圖片 / 右上今日交通 / 左下漫遊小貼士 / 右下景點簡介。
+   只套用在 template-compact，不影響 detailed / text-heavy / fourfold 既有排版。
+   做法：不改動 app.js 產出的 HTML 結構（避免牽動其他版型），改用
+   display:contents 把 .day-top-grid / .day-sidebar / .day-bottom-timeline
+   這三層包裝「攤平」，讓裡面 4 個真正的內容區塊（照片、交通卡、小貼士卡、
+   景點簡介）直接成為 .day-layout 這個 grid 的格子，各自指定 grid-area。
+   ========================================================================== */
+body.template-compact .day-top-grid,
+body.template-compact .day-sidebar,
+body.template-compact .day-bottom-timeline {
+    display: contents !important;
+}
+
+body.template-compact .day-layout {
+    display: grid !important;
+    grid-template-columns: 1fr 1.1fr !important;
+    grid-template-rows: auto auto 1fr !important;
+    grid-template-areas:
+        "header     header"
+        "image      transport"
+        "tips       timeline"
+        "gallery    gallery"
+        "meals      meals" !important;
+    gap: 8px 18px !important;
+}
+
+/* 照片牆與餐食表都要橫跨整個版面寬度，否則會被自動塞進左欄變成細長一條 */
+body.template-compact .day-gallery { grid-area: gallery !important; }
+body.template-compact .day-meals   { grid-area: meals !important; }
+
+body.template-compact .day-header { grid-area: header !important; }
+
+body.template-compact .day-hero-image {
+    grid-area: image !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+}
+
+body.template-compact .day-hero-image .day-art {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    object-fit: cover !important;
+}
+
+/* .day-sidebar has 1-2 .info-card children: the plain one is 今日交通與說明,
+   the one with the extra .warning class is 漫遊小貼士. */
+body.template-compact .day-top-grid .info-card:not(.warning) { grid-area: transport !important; }
+body.template-compact .day-top-grid .info-card.warning { grid-area: tips !important; }
+
+body.template-compact .day-timeline {
+    grid-area: timeline !important;
+    padding-left: 0 !important;
+    overflow: hidden !important;
+}
+
+/* On phone-width screens a 2-column quadrant grid leaves each cell too
+   narrow to read comfortably -- stack all four blocks in one column instead,
+   which is exactly the layout someone actually wants while scrolling on a
+   phone during the trip. */
+@media (max-width: 768px) {
+    body.template-compact .day-layout {
+        grid-template-columns: 1fr !important;
+        grid-template-rows: auto !important;
+        grid-template-areas:
+            "header"
+            "image"
+            "transport"
+            "tips"
+            "timeline"
+            "gallery"
+            "meals" !important;
+    }
+    body.template-compact .day-gallery { grid-area: gallery !important; }
+    body.template-compact .day-meals   { grid-area: meals !important; }
+    body.template-compact .day-hero-image {
+        height: auto !important;
+        max-height: 260px !important;
+    }
+    body.template-compact .day-hero-image .day-art {
+        height: auto !important;
+        max-height: 260px !important;
+    }
+}
+
+@media print {
+    body.template-compact .day-layout {
+        display: grid !important;
+        grid-template-columns: 1fr 1.1fr !important;
+        /* 照片牆與餐食表各自一列，且都橫跨兩欄。少了這兩列的話它們會被自動
+           placement 丟進同一格互相疊在一起，並把整個版面推出紙外。 */
+        grid-template-rows: auto 1fr 1fr auto auto !important;
+        grid-template-areas:
+            "header     header"
+            "image      transport"
+            "tips       timeline"
+            "gallery    gallery"
+            "meals      meals" !important;
+        gap: 6mm 6mm !important;
+        height: 100% !important;
+    }
+    body.template-compact .day-gallery { grid-area: gallery !important; }
+    body.template-compact .day-meals   { grid-area: meals !important; }
+    body.template-compact .day-header { grid-area: header !important; }
+    body.template-compact .day-hero-image {
+        grid-area: image !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        max-height: none !important;
+        margin: 0 !important;
+    }
+    body.template-compact .day-hero-image .day-art {
+        width: 100% !important;
+        height: 100% !important;
+        max-height: none !important;
+        object-fit: cover !important;
+    }
+    body.template-compact .day-top-grid .info-card:not(.warning) { grid-area: transport !important; }
+    body.template-compact .day-top-grid .info-card.warning { grid-area: tips !important; }
+    body.template-compact .day-timeline {
+        grid-area: timeline !important;
+        padding-left: 0 !important;
+    }
+    body.template-compact .day-timeline .timeline-item { padding-bottom: 8px !important; }
+    body.template-compact .timeline-title { margin-bottom: 8px !important; }
+}
+
+body.template-compact.booklet-preview .day-layout {
+    height: 100% !important;
+}
+
+
+/* ==========================================================================
+   風格主題 (VISUAL STYLE THEMES)
+   ==========================================================================
+   「風格」= 配色 / 字體 / 邊框 / 裝飾 (這一段)
+   「排版版型」= 版面骨架 template-XXX (上面各段)
+   兩者是獨立的兩軸，任何風格都能套用在任何版型上。
+
+   實作方式刻意以覆寫 :root 變數為主、結構調整為輔 —— 這樣新增風格時只要
+   加一組變數，不必再把每個版型 × 每個顯示情境重寫一次。
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. 日系手帳風 (預設) — 暖米紙感 + 陶土橘 + 標楷體 + 紙膠帶拍立得
+   -------------------------------------------------------------------------- */
+/* 等同 :root 預設值，這裡明寫一份讓切換回來時一定回得去。 */
+body.style-washi {
+    --bg-screen: #F6F2EB;
+    --primary: #C85A32;
+    --primary-light: #FCEFE9;
+    --secondary: #2B4C59;
+    --secondary-light: #EBF1F3;
+    --accent: #DFAB4E;
+    --text-main: #1C1C1C;
+    --text-muted: #5E5E5E;
+    --border-color: #E2DDD5;
+    --font-kai: "BiauKai", "DFKai-SB", "標楷體", "Noto Sans TC", serif;
+    --radius-lg: 12px;
+    --radius-md: 8px;
+    --radius-sm: 4px;
+    --shadow: 0 4px 15px rgba(44, 44, 44, 0.05);
+    --paper-grad: linear-gradient(135deg, #FAF6F0 0%, #EFE7DC 100%);
+    --paper-dot: rgba(43, 76, 89, 0.06);
+    --paper-dot-faint: rgba(43, 76, 89, 0.04);
+    --panel-bg: #FFFFFF;
+    --tape-display: block;
+    --photo-frame-bg: #FFFFFF;
+    --photo-frame-border: 1px solid #D2C9B9;
+    --photo-frame-pad: 8px 8px 20px 8px;
+    --title-family: var(--font-kai);
+    --title-spacing: normal;
+    --title-weight: bold;
+}
+
+/* --------------------------------------------------------------------------
+   2. 極簡清爽版 — 白底 + 深藍 + 無襯線 + 細線分隔 (參考 travelm.tw)
+   最省墨、資訊密度最高，適合行前快速查資料。
+   -------------------------------------------------------------------------- */
+body.style-minimal {
+    --bg-screen: #FFFFFF;
+    --primary: #2F6FA8;
+    --primary-light: #EFF5FA;
+    --secondary: #16324A;
+    --secondary-light: #EEF2F6;
+    --accent: #2F6FA8;
+    --text-main: #1A1A1A;
+    --text-muted: #6B7280;
+    --border-color: #DCE1E7;
+    /* 整本改用無襯線：標楷體在小字級與螢幕上較糊，清爽風要的是銳利可讀 */
+    --font-kai: "Noto Sans TC", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --radius-lg: 4px;
+    --radius-md: 3px;
+    --radius-sm: 2px;
+    --shadow: none;
+    --shadow-hover: none;
+    --paper-grad: linear-gradient(#FFFFFF, #FFFFFF);
+    --paper-dot: transparent;        /* 拿掉紙張點陣 = 列印不吃墨 */
+    --paper-dot-faint: transparent;
+    --panel-bg: #FFFFFF;
+    --tape-display: none;            /* 無紙膠帶 */
+    --photo-frame-bg: transparent;   /* 無拍立得白框，照片直接切齊 */
+    --photo-frame-border: 1px solid #DCE1E7;
+    --photo-frame-pad: 0;
+    --title-family: var(--font-sans);
+    --title-spacing: normal;
+    --title-weight: 700;
+}
+
+body.style-minimal .book-page {
+    box-shadow: none !important;
+}
+
+/* 卡片改為「細線分隔」而非「有底色的盒子」，視覺更輕、留白更乾淨 */
+body.style-minimal .info-card,
+body.style-minimal .card-detail-box,
+body.style-minimal .stamp-box {
+    background-color: #FFFFFF !important;
+    box-shadow: none !important;
+}
+
+body.style-minimal .cover-image-container {
+    border: 1px solid var(--border-color) !important;
+    box-shadow: none !important;
+}
+
+body.style-minimal .day-hero-image {
+    box-shadow: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   3. 雜誌編輯風 — 近黑白 + 單一硃紅點綴 + 大級數標題 + 直角無陰影
+   設計感最強；因為留白大、色塊少，列印其實也不會太吃墨。
+   -------------------------------------------------------------------------- */
+body.style-magazine {
+    --bg-screen: #FFFFFF;
+    --primary: #C1272D;              /* 唯一亮色：硃紅 */
+    --primary-light: #FBEEEE;
+    --secondary: #111111;            /* 標題近黑 */
+    --secondary-light: #F2F2F2;
+    --accent: #C1272D;
+    --text-main: #111111;
+    --text-muted: #6E6E6E;
+    --border-color: #D8D8D8;
+    --font-kai: "Noto Sans TC", -apple-system, "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --radius-lg: 0;                  /* 全直角 */
+    --radius-md: 0;
+    --radius-sm: 0;
+    --shadow: none;
+    --shadow-hover: none;
+    --paper-grad: linear-gradient(#FFFFFF, #FFFFFF);
+    --paper-dot: transparent;
+    --paper-dot-faint: transparent;
+    --panel-bg: #FFFFFF;
+    --tape-display: none;
+    --photo-frame-bg: transparent;
+    --photo-frame-border: none;      /* 照片無框，直接落版 */
+    --photo-frame-pad: 0;
+    --title-family: var(--font-sans);
+    --title-spacing: -0.01em;
+    --title-weight: 900;
+}
+
+body.style-magazine .book-page {
+    box-shadow: none !important;
+}
+
+/* 雜誌感的關鍵：頁首一條粗黑通欄線 + 放大的標題 */
+body.style-magazine .page-header-container {
+    border-top: 4px solid var(--secondary) !important;
+    border-bottom: 1px solid var(--secondary) !important;
+    padding-top: 10px !important;
+}
+
+body.style-magazine .page-title {
+    font-size: 30px !important;
+    line-height: 1.15 !important;
+}
+
+body.style-magazine .day-header {
+    border-bottom: 3px solid var(--secondary) !important;
+}
+
+body.style-magazine .day-title {
+    font-size: 24px !important;
+}
+
+/* 內容盒子改為只留上緣細線，去掉四邊框與底色 */
+body.style-magazine .info-card,
+body.style-magazine .card-detail-box {
+    background-color: #FFFFFF !important;
+    border: none !important;
+    border-top: 1px solid var(--secondary) !important;
+    box-shadow: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+body.style-magazine .info-card h4,
+body.style-magazine .timeline-title {
+    text-transform: none;
+    letter-spacing: 0.04em !important;
+    color: var(--primary) !important;
+}
+
+body.style-magazine .cover-image-container {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+body.style-magazine .day-hero-image {
+    box-shadow: none !important;
+}
+
+body.style-magazine .card-badge {
+    border-radius: 0 !important;
+}
+
+/* --------------------------------------------------------------------------
+   4. 復古車票風 — 牛皮紙 + 棕墨 + 虛線裁切邊 (票根感)
+   摺成小冊子時最像實體車票／半券。
+   -------------------------------------------------------------------------- */
+body.style-ticket {
+    --bg-screen: #F5EBD8;
+    --primary: #A8442A;              /* 印章紅棕 */
+    --primary-light: #F7E9DF;
+    --secondary: #4A3520;            /* 深棕墨 */
+    --secondary-light: #EFE3CE;
+    --accent: #8C6B3F;
+    --text-main: #33261A;
+    --text-muted: #7A6650;
+    --border-color: #C9B393;
+    --radius-lg: 2px;
+    --radius-md: 2px;
+    --radius-sm: 2px;
+    --shadow: 0 2px 6px rgba(74, 53, 32, 0.08);
+    --paper-grad: linear-gradient(135deg, #F5E9D2 0%, #EADCBE 100%);
+    --paper-dot: rgba(90, 66, 40, 0.07);
+    --paper-dot-faint: rgba(90, 66, 40, 0.05);
+    --panel-bg: #FCF6E9;
+    --tape-display: none;
+    --photo-frame-bg: #FCF6E9;
+    --photo-frame-border: 1px dashed #B99C6E;
+    --photo-frame-pad: 6px 6px 14px 6px;
+    --title-family: var(--font-kai);
+    --title-spacing: 0.04em;
+    --title-weight: bold;
+}
+
+/* 票根感：所有內容盒改虛線邊 = 裁切/打孔線 */
+body.style-ticket .info-card,
+body.style-ticket .card-detail-box,
+body.style-ticket .day-timeline,
+body.style-ticket .cover-meta {
+    background-color: var(--panel-bg) !important;
+    border: 1px dashed var(--border-color) !important;
+}
+
+/* 頁首雙線 = 車票抬頭 */
+body.style-ticket .page-header-container,
+body.style-ticket .day-header {
+    border-bottom: 3px double var(--secondary) !important;
+}
+
+body.style-ticket .cover-image-container {
+    border: 3px solid var(--panel-bg) !important;
+    box-shadow: 0 2px 8px rgba(74, 53, 32, 0.15) !important;
+}
+
+body.style-ticket .card-badge {
+    border-radius: 2px !important;
+    letter-spacing: 0.08em;
+}
+
+/* --------------------------------------------------------------------------
+   共通：側邊欄與工具列跟著風格走，避免螢幕上「外框一套色、內容另一套色」
+   -------------------------------------------------------------------------- */
+body.style-ticket .sidebar {
+    background-color: #FBF3E4;
+}
+
+body.style-magazine .sidebar,
+body.style-minimal .sidebar {
+    background-color: #FFFFFF;
+}
+
+
+/* ==========================================================================
+   旅遊資訊頁 (Info pages)
+   ==========================================================================
+   注意事項 / 搭機資訊 / 飯店資訊 / 旅遊資訊。內容量大，由 app.js 的分頁引擎
+   量測後切成多頁，所以這裡只負責「一頁之內」的樣式，不處理換頁。
+   所有顏色與字體都走主題變數，四種風格自動適用。
+   ========================================================================== */
+
+/* 量測盒：離開畫面、不可見、不參與互動，只用來量區塊高度。
+   寬度必須等同該版型「一欄」的實際寬度，量出來的高度才準。 */
+.info-measure-box {
+    position: absolute;
+    left: -99999px;
+    top: 0;
+    visibility: hidden;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* 各版型「一欄」的實際內容寬度：
+   單頁版 = A4 直式 210mm 扣掉 @page 左右各 15mm
+   雙頁詳細版 = A5 半張 148.5mm 扣掉左右各 8mm padding
+   四折頁 = 一個摺頁面板扣掉左右 padding */
+body.template-compact .info-measure-box,
+body.template-text-heavy .info-measure-box { width: 180mm; }
+body.template-detailed .info-measure-box   { width: 132mm; }
+body.template-fourfold .info-measure-box   { width: 64mm; }
+
+.info-columns {
+    display: grid;
+    gap: 8mm;
+    align-items: start;
+}
+
+.info-columns[data-columns="1"] { grid-template-columns: 1fr; }
+.info-columns[data-columns="2"] { grid-template-columns: 1fr 1fr; }
+
+.info-column {
+    min-width: 0;
+}
+
+.info-page-no {
+    font-size: 11px;
+    font-weight: normal;
+    color: var(--text-muted);
+    margin-left: 6px;
+}
+
+.info-section-title {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--primary);
+    font-family: var(--title-family);
+    letter-spacing: var(--title-spacing);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 4px;
+    margin: 10px 0 8px 0;
+}
+
+.info-column > .info-section-title:first-child { margin-top: 0; }
+
+/* 「標籤｜內容」兩欄列 —— 注意事項與緊急聯絡都用這個 */
+.info-row {
+    display: grid;
+    grid-template-columns: 76px 1fr;
+    gap: 8px;
+    font-size: 11.5px;
+    line-height: 1.55;
+    padding: 3px 0;
+    border-bottom: 1px dotted var(--border-color);
+}
+
+.info-row-label {
+    font-weight: bold;
+    color: var(--secondary);
+}
+
+.info-row-text { min-width: 0; }
+
+/* 旅遊資訊長文 */
+.info-article {
+    margin-bottom: 10px;
+    break-inside: avoid;
+}
+
+.info-article-title {
+    font-size: 12.5px;
+    font-weight: bold;
+    color: var(--secondary);
+    font-family: var(--title-family);
+    border-left: 3px solid var(--primary);
+    padding-left: 7px;
+    margin-bottom: 5px;
+}
+
+.info-article .info-edit-block {
+    font-size: 11px;
+    line-height: 1.65;
+    color: var(--text-main);
+    text-align: justify;
+}
+
+/* 班機一覽表 */
+.info-table-head,
+.info-table-row {
+    display: grid;
+    grid-template-columns: 52px 1fr 84px 96px;
+    gap: 6px;
+    font-size: 11px;
+    padding: 5px 4px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.info-table-head {
+    font-weight: bold;
+    background-color: var(--secondary-light);
+    color: var(--secondary);
+}
+
+/* 飯店卡片 */
+.info-hotel-card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background-color: var(--panel-bg);
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    break-inside: avoid;
+}
+
+.info-hotel-date {
+    display: inline-block;
+    font-size: 9.5px;
+    font-weight: bold;
+    color: #FFFFFF;
+    background-color: var(--secondary);
+    border-radius: var(--radius-sm);
+    padding: 2px 7px;
+    margin-bottom: 5px;
+}
+
+.info-hotel-name {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--secondary);
+    font-family: var(--title-family);
+    margin-bottom: 6px;
+}
+
+.info-hotel-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 10.5px;
+    line-height: 1.5;
+    margin-bottom: 5px;
+}
+
+.info-hotel-key {
+    display: inline-block;
+    width: 34px;
+    font-weight: bold;
+    color: var(--text-muted);
+}
+
+.info-hotel-desc {
+    font-size: 10.5px;
+    line-height: 1.6;
+    color: var(--text-muted);
+}
+
+/* 可編輯欄位：外觀維持一般內文，不做成輸入框，列印時才不會多一圈框線 */
+.info-edit {
+    outline: none;
+    cursor: text;
+    word-break: break-word;
+}
+
+.info-edit-block {
+    display: block;
+    min-height: 1.4em;
+    white-space: pre-wrap;
+}
+
+.info-edit:hover {
+    background-color: var(--primary-light);
+}
+
+.info-edit:focus {
+    background-color: var(--primary-light);
+    box-shadow: inset 0 -1.5px 0 var(--primary);
+}
+
+.nav-item .info-badge {
+    background-color: var(--secondary);
+    font-size: 7.5pt;
+    width: 38px;
+    height: 18px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    color: #FFFFFF;
+}
+
+/* body.booklet-preview .book-page 是 flex column + space-between，而資訊頁
+   只有「頁首 + 內容」兩個子元素，會被推到一頁的頭尾兩端、中間開一個大洞。
+   （與先前雙頁詳細版每日行程頁遇到的是同一個問題。）資訊頁一律靠上排。 */
+body.booklet-preview .info-page {
+    justify-content: flex-start !important;
+}
+
+/* 列印與預覽：拿掉所有互動提示 */
+body.booklet-preview .info-edit:hover,
+body.booklet-preview .info-edit:focus {
+    background: none !important;
+    box-shadow: none !important;
+}
+
+@media print {
+    .info-edit:hover,
+    .info-edit:focus {
+        background: none !important;
+        box-shadow: none !important;
+    }
+
+    .info-measure-box { display: none !important; }
+}
+
+/* 四折頁版面很窄，標籤欄位要縮短否則內容擠成一條 */
+body.template-fourfold .info-row {
+    grid-template-columns: 52px 1fr;
+    font-size: 9.5px;
+}
+
+body.template-fourfold .info-table-head,
+body.template-fourfold .info-table-row {
+    grid-template-columns: 34px 1fr 46px 52px;
+    font-size: 8.5px;
+}
+
+body.template-fourfold .info-article .info-edit-block { font-size: 9px; }
+
+
+/* ==========================================================================
+   風格主題 · 第二批（依 example/ 參考範本製作）
+   ==========================================================================
+   5. 手繪塗鴉風   ← example/1  天藍底 + 粗圓體 + 膠囊標題 + 貼紙感
+   6. 拼貼手帳風   ← example/2  斑點再生紙 + 手寫感 + 紙膠帶
+   7. 灰藍卡片風   ← example/3  低飽和灰藍底 + 白色圓角卡片 + 置中膠囊標題
+   8. 旅行社印刷風 ← example/*.pdf  白底 + 深藍橫幅標題 + 表格化 + 襯線內文
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   5. 手繪塗鴉風 — 天藍底、粗黑圓體、白色膠囊標題、大圓角貼紙感卡片
+   -------------------------------------------------------------------------- */
+body.style-doodle {
+    --bg-screen: #DCEEF9;
+    --primary: #2B7FC4;
+    --primary-light: #E4F1FA;
+    --secondary: #1A1A1A;          /* 參考範本的標題是粗黑字，不是彩色 */
+    --secondary-light: #E4F1FA;
+    --accent: #F2C14E;
+    --text-main: #1A1A1A;
+    --text-muted: #4A5A66;
+    --border-color: #9CC8E4;
+    --font-kai: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --radius-lg: 18px;             /* 很圓 = 童趣 */
+    --radius-md: 14px;
+    --radius-sm: 8px;
+    --shadow: 0 3px 0 rgba(26, 26, 26, 0.12);
+    --paper-grad: linear-gradient(160deg, #E8F4FC 0%, #CFE7F5 100%);
+    --paper-dot: transparent;
+    --paper-dot-faint: transparent;
+    --panel-bg: #FFFFFF;
+    --tape-display: none;
+    --photo-frame-bg: #FFFFFF;
+    --photo-frame-border: 2px solid #1A1A1A;
+    --photo-frame-pad: 6px;
+    --title-family: var(--font-kai);
+    --title-spacing: 0.02em;
+    --title-weight: 900;
+}
+
+/* 白色膠囊標題（範本裡每頁大標都裝在一個圓角白底標籤內） */
+body.style-doodle .page-header-container {
+    border-bottom: none !important;
+    text-align: center !important;
+}
+
+body.style-doodle .page-title {
+    display: inline-block !important;
+    background-color: #FFFFFF !important;
+    border: 2.5px solid var(--secondary) !important;
+    border-radius: 999px !important;
+    padding: 5px 22px !important;
+    box-shadow: 0 3px 0 rgba(26, 26, 26, 0.15) !important;
+}
+
+body.style-doodle .info-card,
+body.style-doodle .card-detail-box,
+body.style-doodle .info-hotel-card,
+body.style-doodle .day-timeline {
+    background-color: #FFFFFF !important;
+    border: 2px solid var(--secondary) !important;
+    box-shadow: 0 3px 0 rgba(26, 26, 26, 0.12) !important;
+}
+
+body.style-doodle .day-header {
+    border-bottom: 2.5px dashed var(--border-color) !important;
+}
+
+body.style-doodle .card-badge,
+body.style-doodle .info-hotel-date,
+body.style-doodle .day-date {
+    border-radius: 999px !important;
+}
+
+/* --------------------------------------------------------------------------
+   6. 拼貼手帳風 — 斑點再生紙、標楷手寫感、紙膠帶與拍立得
+   -------------------------------------------------------------------------- */
+body.style-scrapbook {
+    --bg-screen: #F2EDE1;
+    --primary: #C2703F;
+    --primary-light: #F7EDE3;
+    --secondary: #4A4038;
+    --secondary-light: #EDE5D6;
+    --accent: #7B9A6D;
+    --text-main: #33302A;
+    --text-muted: #6E655A;
+    --border-color: #D5CBB6;
+    --radius-lg: 6px;
+    --radius-md: 5px;
+    --radius-sm: 3px;
+    --shadow: 0 2px 8px rgba(74, 64, 56, 0.10);
+    --paper-grad: linear-gradient(150deg, #FBF7ED 0%, #F1EADA 100%);
+    /* 較深、較密的斑點 = 再生紙的雜質顆粒感 */
+    --paper-dot: rgba(120, 100, 70, 0.13);
+    --paper-dot-faint: rgba(120, 100, 70, 0.09);
+    --panel-bg: rgba(255, 255, 255, 0.62);
+    --tape-display: block;          /* 手帳一定要有紙膠帶 */
+    --tape-color: rgba(150, 170, 140, 0.38);
+    --photo-frame-bg: #FFFFFF;
+    --photo-frame-border: 1px solid #DCD2BE;
+    --photo-frame-pad: 7px 7px 18px 7px;
+    --title-family: var(--font-kai);
+    --title-spacing: 0.05em;
+    --title-weight: bold;
+}
+
+/* 手帳的內容是直接寫在紙上的，盒子不要太「實」，用半透明貼上去的感覺 */
+body.style-scrapbook .info-card,
+body.style-scrapbook .card-detail-box,
+body.style-scrapbook .info-hotel-card,
+body.style-scrapbook .day-timeline {
+    background-color: var(--panel-bg) !important;
+    border: 1px solid var(--border-color) !important;
+}
+
+body.style-scrapbook .page-header-container,
+body.style-scrapbook .day-header {
+    border-bottom: 2px solid var(--secondary) !important;
+}
+
+body.style-scrapbook .info-section-title {
+    border-bottom-style: dashed !important;
+}
+
+/* --------------------------------------------------------------------------
+   7. 灰藍卡片風 — 低飽和灰藍底、置中白色膠囊標題、純白圓角卡片
+   -------------------------------------------------------------------------- */
+body.style-slate {
+    --bg-screen: #C9D6E2;
+    --primary: #40566B;
+    --primary-light: #E8EEF4;
+    --secondary: #2C3E50;
+    --secondary-light: #E3EAF1;
+    --accent: #7C93A8;
+    --text-main: #2F3B47;
+    --text-muted: #61707E;
+    --border-color: rgba(255, 255, 255, 0.75);
+    --font-kai: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --radius-lg: 14px;
+    --radius-md: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 3px 12px rgba(44, 62, 80, 0.10);
+    /* 比參考圖淡一些：整頁滿版深灰藍非常吃碳粉，淡一階仍是同一個調性 */
+    --paper-grad: linear-gradient(165deg, #CFDBE6 0%, #BECDDC 100%);
+    --paper-dot: transparent;
+    --paper-dot-faint: transparent;
+    --panel-bg: #FFFFFF;
+    --tape-display: none;
+    --photo-frame-bg: #FFFFFF;
+    --photo-frame-border: none;
+    --photo-frame-pad: 6px;
+    --title-family: var(--font-kai);
+    --title-spacing: 0.06em;
+    --title-weight: 700;
+}
+
+body.style-slate .page-header-container {
+    border-bottom: none !important;
+    text-align: center !important;
+}
+
+body.style-slate .page-title {
+    display: inline-block !important;
+    background-color: #FFFFFF !important;
+    border-radius: 999px !important;
+    padding: 6px 26px !important;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.12) !important;
+}
+
+body.style-slate .info-card,
+body.style-slate .card-detail-box,
+body.style-slate .info-hotel-card,
+body.style-slate .day-timeline {
+    background-color: #FFFFFF !important;
+    border: none !important;
+    box-shadow: 0 3px 12px rgba(44, 62, 80, 0.10) !important;
+}
+
+body.style-slate .day-header {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.8) !important;
+}
+
+/* --------------------------------------------------------------------------
+   8. 旅行社印刷風 — 白底、深藍橫幅標題、表格化、襯線內文（參考範本 PDF）
+   -------------------------------------------------------------------------- */
+body.style-agency {
+    --bg-screen: #FFFFFF;
+    --primary: #1F6FA8;
+    --primary-light: #EAF3F9;
+    --secondary: #23405B;
+    --secondary-light: #E7EDF3;
+    --accent: #B8892B;
+    --text-main: #1A1A1A;
+    --text-muted: #5A6470;
+    --border-color: #C4CFD9;
+    /* 印刷品內文用襯線體，小字級下比黑體更好讀、也更像正式手冊 */
+    --font-kai: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+    --radius-lg: 3px;
+    --radius-md: 3px;
+    --radius-sm: 2px;
+    --shadow: none;
+    --shadow-hover: none;
+    --paper-grad: linear-gradient(#FFFFFF, #FFFFFF);
+    --paper-dot: transparent;
+    --paper-dot-faint: transparent;
+    --panel-bg: #FFFFFF;
+    --tape-display: none;
+    --photo-frame-bg: transparent;
+    --photo-frame-border: 1px solid #C4CFD9;
+    --photo-frame-pad: 0;
+    --title-family: "Noto Sans TC", sans-serif;
+    --title-spacing: 0.08em;
+    --title-weight: 700;
+}
+
+/* 深藍橫幅大標：範本每一章的標題都是一條滿欄色帶 */
+body.style-agency .page-header-container {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+}
+
+body.style-agency .page-title {
+    display: block !important;
+    background-color: var(--secondary) !important;
+    color: #FFFFFF !important;
+    padding: 7px 14px !important;
+    margin-bottom: 6px !important;
+}
+
+body.style-agency .page-description {
+    padding-left: 2px !important;
+}
+
+body.style-agency .info-card,
+body.style-agency .card-detail-box,
+body.style-agency .info-hotel-card {
+    background-color: #FFFFFF !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: none !important;
+}
+
+body.style-agency .day-header {
+    border-bottom: 2px solid var(--secondary) !important;
+}
+
+/* 表格是這個風格的主角，加深表頭讓它更像正式一覽表 */
+body.style-agency .info-table-head,
+body.style-agency .print-th {
+    background-color: var(--secondary) !important;
+    color: #FFFFFF !important;
+}
+
+body.style-agency .info-section-title {
+    background-color: var(--secondary-light) !important;
+    color: var(--secondary) !important;
+    padding: 4px 8px !important;
+    border-bottom: none !important;
+    border-left: 4px solid var(--secondary) !important;
+}
+
+/* --------------------------------------------------------------------------
+   側邊欄配合新風格
+   -------------------------------------------------------------------------- */
+body.style-doodle .sidebar   { background-color: #F2F9FD; }
+body.style-scrapbook .sidebar{ background-color: #FBF7ED; }
+body.style-slate .sidebar    { background-color: #EEF3F8; }
+body.style-agency .sidebar   { background-color: #FFFFFF; }
+
+
+/* ==========================================================================
+   每日餐食與時間表 / 新增資訊頁模組
+   ========================================================================== */
+
+.day-meals {
+    margin-top: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.day-meals-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    font-size: 10.5px;
+    line-height: 1.4;
+}
+
+.day-meals-row > span {
+    padding: 3px 8px;
+    border-right: 1px solid var(--border-color);
+    min-height: 1.5em;
+}
+
+.day-meals-row > span:last-child { border-right: none; }
+
+.day-meals-head > span {
+    background-color: var(--secondary-light);
+    color: var(--secondary);
+    font-weight: bold;
+    font-size: 9.5px;
+    text-align: center;
+}
+
+.day-meals-row:not(.day-meals-head) > span {
+    border-bottom: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.day-meals-row:last-child > span { border-bottom: none; }
+
+/* 同行者與房號：三欄 */
+.info-room-row {
+    grid-template-columns: 1fr 1fr 1.4fr !important;
+}
+
+/* 中日對照語句 */
+.info-phrase {
+    padding: 4px 0;
+    border-bottom: 1px dotted var(--border-color);
+    line-height: 1.5;
+}
+
+.info-phrase-zh {
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--secondary);
+}
+
+.info-phrase-ja {
+    font-size: 11px;
+    color: var(--primary);
+    padding-left: 10px;
+}
+
+/* 出國宣誓 */
+.info-oath {
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    gap: 7px;
+    align-items: start;
+    font-size: 11px;
+    line-height: 1.55;
+    padding: 3px 0;
+}
+
+.info-oath-no {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    color: #FFFFFF;
+    font-size: 9px;
+    font-weight: bold;
+}
+
+/* 四折頁口袋版：每個摺頁面板只有 74mm × 210mm，實測加入餐食表後每日行程頁
+   會超出紙張 40～109px（最寬鬆的一頁也只剩 17px 餘裕），放不下。
+   與消費記錄表採相同作法：螢幕上照常可以填寫，預覽與列印則不放這張表，
+   讓「預覽 = 印出來」維持成立，不會有半張表被紙緣裁掉。 */
+body.template-fourfold.booklet-preview .day-meals {
+    display: none !important;
+}
+
+@media print {
+    body.template-fourfold .day-meals {
+        display: none !important;
+    }
+}
+
+/* 雜誌編輯風的放大標題是為了 A4 整頁的視覺衝擊，套到四折頁那種 74mm 寬的
+   窄摺頁上會過大，把內容擠出紙外（實測 page-day3-a 溢出 10px）。
+   四折頁改回接近一般級數。 */
+body.style-magazine.template-fourfold .page-title { font-size: 15px !important; }
+body.style-magazine.template-fourfold .day-title  { font-size: 13px !important; }
+
+
+/* ==========================================================================
+   簽名排版模組 (Signature layout modules)
+   ==========================================================================
+   同一份 HTML 結構，靠風格切換出完全不同的排法 —— 這是「換風格像換了一本
+   手冊」的關鍵。三個模組：今日推薦照片牆、車程時間軸、側邊分類頁籤。
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   模組 A：今日推薦照片牆（基準樣式 = 方格）
+   -------------------------------------------------------------------------- */
+.day-gallery {
+    margin-top: 10px;
+}
+
+.day-gallery-title {
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--secondary);
+    font-family: var(--title-family);
+    margin-bottom: 6px;
+}
+
+/* auto-fill + minmax：格子大小由「最小寬度」決定，欄數自己算。
+   這樣同一組 CSS 在 A4 整頁（很寬）與 A5 半張（很窄）都會給出合理的格子
+   尺寸，不會像固定 3 欄那樣在寬頁面上把格子撐成巨無霸吃掉整頁。 */
+.day-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+    gap: 8px;
+}
+
+.gallery-tile-img {
+    max-height: 26mm;
+}
+
+.gallery-tile {
+    position: relative;
+    margin: 0;
+    text-align: center;
+}
+
+.gallery-tile-img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background-color: var(--panel-bg);
+    background-size: cover;
+    background-position: center;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.gallery-tile-img:not(.has-img)::after {
+    content: "📷";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-size: 18px;
+    opacity: 0.35;
+}
+
+.gallery-tile-img:hover { filter: brightness(0.93); }
+
+.gallery-tile figcaption {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin-top: 3px;
+    line-height: 1.35;
+}
+
+.gallery-tile-name {
+    font-size: 9.5px;
+    font-weight: bold;
+    color: var(--text-main);
+}
+
+.gallery-tile-note {
+    font-size: 8.5px;
+    color: var(--text-muted);
+}
+
+.gallery-tile-del {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: none;
+    background-color: var(--primary);
+    color: #FFFFFF;
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.gallery-tile:hover .gallery-tile-del { opacity: 1; }
+
+.btn-add-gallery {
+    margin-top: 6px;
+    background: none;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--primary);
+    font-family: var(--font-kai);
+    font-size: 10.5px;
+    padding: 3px 10px;
+    cursor: pointer;
+}
+
+.btn-add-gallery:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary);
+}
+
+/* --- 日系圖鑑風：九宮格圖鑑牆，格線分明、黑框、名稱置中 --- */
+body.style-doodle .day-gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
+    gap: 10px;
+}
+
+body.style-doodle .gallery-tile-img {
+    border: 2px solid var(--secondary);
+    border-radius: 12px;
+    box-shadow: 0 3px 0 rgba(26, 26, 26, 0.12);
+}
+
+body.style-doodle .gallery-tile-name { font-size: 10px; }
+
+/* --- 拼貼手帳風：圓形剪貼，四欄密排，像貼上去的照片 --- */
+body.style-scrapbook .day-gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+    gap: 7px;
+}
+
+body.style-scrapbook .gallery-tile-img {
+    border-radius: 50%;                       /* 圓形裁切 = 手帳的招牌手法 */
+    border: 3px solid #FFFFFF;
+    box-shadow: 0 2px 6px rgba(74, 64, 56, 0.18);
+}
+
+body.style-scrapbook .gallery-tile:nth-child(odd)  { transform: rotate(-1.5deg); }
+body.style-scrapbook .gallery-tile:nth-child(even) { transform: rotate(1.5deg); }
+
+body.style-scrapbook .gallery-tile-name { font-size: 9px; }
+body.style-scrapbook .gallery-tile-note { font-size: 8px; }
+
+/* --- 灰藍卡片風：扁平圓角卡片，圖文左右排，兩欄 --- */
+body.style-slate .day-gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+}
+
+body.style-slate .gallery-tile {
+    display: grid;
+    grid-template-columns: 44px 1fr;
+    gap: 8px;
+    align-items: center;
+    text-align: left;
+    background-color: #FFFFFF;
+    border-radius: 10px;
+    padding: 6px 8px;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
+}
+
+body.style-slate .gallery-tile-img {
+    border: none;
+    border-radius: 8px;
+}
+
+body.style-slate .gallery-tile figcaption { margin-top: 0; }
+body.style-slate .gallery-tile-name { font-size: 10px; }
+
+/* --------------------------------------------------------------------------
+   模組 B：車程時間標示（站與站之間）
+   -------------------------------------------------------------------------- */
+.timeline-travel {
+    display: flex;
+    align-items: center;
+    padding-left: 2px;
+    margin: -8px 0 6px 0;
+}
+
+.timeline-travel-badge {
+    font-size: 9px;
+    color: var(--text-muted);
+    background-color: var(--secondary-light);
+    border-radius: 999px;
+    padding: 1px 8px;
+    margin-left: 26px;
+    min-width: 46px;
+    display: inline-block;
+}
+
+.timeline-travel-badge:empty::before {
+    content: attr(data-placeholder);
+    opacity: 0.45;
+}
+
+/* 手帳風：改成虛線垂直連接，像手繪的路線 */
+body.style-scrapbook .timeline-travel {
+    position: relative;
+    margin: -6px 0 6px 0;
+}
+
+body.style-scrapbook .timeline-travel::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: -2px;
+    bottom: -2px;
+    border-left: 2px dashed var(--primary);
+}
+
+body.style-scrapbook .timeline-travel-badge {
+    background-color: transparent;
+    border: 1px dashed var(--primary);
+    color: var(--primary);
+}
+
+/* --------------------------------------------------------------------------
+   模組 C：側邊分類頁籤（灰藍卡片風專用，參考首爾手冊的 Tabs 導航）
+   -------------------------------------------------------------------------- */
+body.style-slate .info-page {
+    position: relative;
+}
+
+/* 分類頁籤放在頁面「內側」右上角。原本掛在頁緣外（right:-1px）並直排，
+   在跨頁並排時左頁的頁籤會剛好落在兩頁中間的裝訂溝裡，看起來像卡在縫中。
+   改成頁內右上角的圓角標籤，任何配對方式都不會打架。 */
+body.style-slate .info-page[data-tab]::after {
+    content: attr(data-tab);
+    position: absolute;
+    top: 6mm;
+    right: 6mm;
+    background-color: var(--secondary);
+    color: #FFFFFF;
+    font-size: 8.5px;
+    letter-spacing: 0.1em;
+    padding: 3px 9px;
+    border-radius: 999px;
+}
+
+/* 四折頁口袋版：面板只有 74mm 寬，照片牆與頁籤都放不下，
+   螢幕上照常編輯，預覽與列印不放（與餐食表同樣的處理）。 */
+body.template-fourfold.booklet-preview .day-gallery,
+body.template-fourfold.booklet-preview .info-page[data-tab]::after {
+    display: none !important;
+}
+
+@media print {
+    body.template-fourfold .day-gallery,
+    body.template-fourfold .info-page[data-tab]::after {
+        display: none !important;
+    }
+
+    .gallery-tile-del,
+    .btn-add-gallery {
+        display: none !important;
+    }
+}
+
+/* 四折頁：車程標示每站一條，四五站就吃掉 60～80px，把行程頁擠出紙外
+   （實測溢出 3～19px）。這裡壓到最扁，保留資訊但不佔版面。 */
+body.template-fourfold .timeline-travel {
+    margin: -10px 0 2px 0;
+}
+
+body.template-fourfold .timeline-travel-badge {
+    font-size: 7.5px;
+    padding: 0 5px;
+    margin-left: 18px;
+    min-width: 36px;
+}
+
+
+/* ==========================================================================
+   資訊頁的跨頁對開 (Info page spreads)
+   ==========================================================================
+   #dynamic-info-pages 是一個包住所有資訊頁的 wrapper div。它夾在 .book-pages
+   （flex 容器）與實際的 .book-page 之間，會讓那十幾頁變成「一個 flex 項目」，
+   結果全部擠在同一欄由上往下堆，只有它後面的 #page-notes 被排到旁邊 ——
+   這就是預覽模式下看起來「都變成單頁、配對很奇怪」的原因。
+   跟 #dynamic-day-pages 一樣用 display:contents 讓 wrapper 對版面透明。
+   ========================================================================== */
+
+#dynamic-info-pages {
+    display: contents;
+}
+
+/* 互動網頁：資訊頁的續頁與第一頁並排成跨頁，跟每日行程頁一致。
+   一節超過兩頁時會自然換行成第二排，就像實體書的下一個跨頁。 */
+body.template-detailed:not(.booklet-preview) .info-page.active {
+    flex: 1 1 calc(50% - 10px);
+    width: calc(50% - 10px);
+    box-shadow: var(--shadow) !important;
+}
+
+@media (max-width: 900px) {
+    body.template-detailed:not(.booklet-preview) .info-page.active {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+}
+
+/* 刷卡攻略與行李清單在雙頁詳細版是「一整張橫式紙、內容分左右兩欄跨過摺線」，
+   而每日行程頁是「兩張 A5 並排、中間有虛線」。兩者都是跨頁，但看起來不一樣。
+   補一條置中的摺線，讓所有跨頁的視覺語彙一致。 */
+body.template-detailed.booklet-preview #page-cards,
+body.template-detailed.booklet-preview #page-packing,
+body.template-detailed #page-cards.active,
+body.template-detailed #page-packing.active {
+    position: relative;
+}
+
+body.template-detailed.booklet-preview #page-cards::before,
+body.template-detailed.booklet-preview #page-packing::before,
+body.template-detailed #page-cards.active::before,
+body.template-detailed #page-packing.active::before {
+    content: "";
+    position: absolute;
+    top: 8mm;
+    bottom: 8mm;
+    left: 50%;
+    border-left: 1px dashed var(--border-color);
+    pointer-events: none;
+}
+
+@media print {
+    body.template-detailed #page-cards,
+    body.template-detailed #page-packing {
+        position: relative;
+    }
+    body.template-detailed #page-cards::before,
+    body.template-detailed #page-packing::before {
+        content: "";
+        position: absolute;
+        top: 8mm;
+        bottom: 8mm;
+        left: 50%;
+        border-left: 1px dashed var(--border-color);
+    }
+}
+
+
+/* ==========================================================================
+   四折頁口袋版：行李清單頁溢出修正
+   ==========================================================================
+   實測（以真實紙張尺寸量測，而非跟著瀏覽器視窗）：四折頁的行李清單面板只有
+   281×794px，但內容是 header 77 + 打包清單 782 + 航班住宿 304 = 1163px，
+   打包清單被裁掉最後一類、航班住宿整塊completely 掉出紙外。
+   兩個處理：
+   1. 航班與住宿在「搭機資訊」「飯店資訊」已有各自完整頁面，口袋版不再重複放。
+   2. 打包清單壓縮列高與字級，把 782px 收進可用的 687px 內。
+   ========================================================================== */
+
+body.template-fourfold.booklet-preview .flight-lodging-section {
+    display: none !important;
+}
+
+body.template-fourfold .packing-grid {
+    gap: 4px !important;
+}
+
+body.template-fourfold .packing-category {
+    padding: 5px 6px !important;
+    margin-bottom: 0 !important;
+}
+
+body.template-fourfold .packing-category h4 {
+    font-size: 8.5px !important;
+    margin-bottom: 3px !important;
+    padding-bottom: 2px !important;
+}
+
+body.template-fourfold .check-item-row {
+    padding: 0 !important;
+}
+
+body.template-fourfold .check-item {
+    font-size: 8px !important;
+    line-height: 1.35 !important;
+    gap: 4px !important;
+    padding: 1px 0 !important;
+}
+
+body.template-fourfold .check-item input[type="checkbox"] {
+    width: 8px !important;
+    height: 8px !important;
+}
+
+@media print {
+    body.template-fourfold .flight-lodging-section {
+        display: none !important;
+    }
+}
+
+
+/* ==========================================================================
+   拼版模式 (Saddle-stitch imposition)
+   ==========================================================================
+   雙面列印 → 對折 → 騎馬釘。每一張橫式 A4 對折後產生兩個 A5 頁面，
+   所以小冊子模式下「每一頁都必須是獨立的 A5」，不能有跨過摺線的整張版面。
+   ========================================================================== */
+
+@media print {
+    /* 所有動態頁的 wrapper 都要對版面透明，拼版才能把全部頁面排進同一個
+       flex 容器裡依 order 擺位。 */
+    body.imposition #dynamic-day-pages,
+    body.imposition #dynamic-info-pages,
+    body.imposition #dynamic-custom-pages {
+        display: contents !important;
+    }
+
+    body.template-detailed.imposition .book-pages {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-content: flex-start !important;
+    }
+
+    body.template-detailed.imposition .book-page {
+        float: none !important;
+        flex: 0 0 148.5mm !important;
+    }
+
+    /* 刷卡攻略與行李清單原本是「整張橫式紙、內容跨過摺線」的設計，
+       在小冊子裡必須收成單一 A5 頁面，內部改單欄。 */
+    body.template-detailed.imposition #page-cards,
+    body.template-detailed.imposition #page-packing {
+        display: block !important;
+        width: 148.5mm !important;
+        padding: 10mm 8mm !important;
+        page-break-before: auto !important;
+        page-break-after: auto !important;
+    }
+
+    body.template-detailed.imposition #page-cards::before,
+    body.template-detailed.imposition #page-packing::before {
+        display: none !important;   /* 單頁了，不需要中央摺線 */
+    }
+
+    /* 刷卡攻略的兩張卡片盒需要寬度，單欄；行李清單四類單欄會超出 A5
+       （實測 +85～100px），改雙欄剛好塞得下。 */
+    body.template-detailed.imposition #page-cards .cards-grid {
+        grid-template-columns: 1fr !important;
+        gap: 6px !important;
+    }
+
+    body.template-detailed.imposition #page-packing .packing-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 5px !important;
+        align-items: start !important;
+    }
+
+    body.template-detailed.imposition #page-packing .packing-category {
+        padding: 6px 8px !important;
+    }
+
+    body.template-detailed.imposition #page-packing .check-item {
+        font-size: 8.5px !important;
+        line-height: 1.4 !important;
+    }
+
+    body.template-detailed.imposition #page-cards .card-notes-printable,
+    body.template-detailed.imposition #page-packing .flight-lodging-section {
+        display: none !important;   /* A5 放不下，且各自已有專屬頁面 */
+    }
+
+    /* 補白頁：維持紙張底色，不留突兀的白塊 */
+    body.imposition .impose-blank {
+        background:
+            radial-gradient(var(--paper-dot-faint) 1.2px, transparent 1.2px),
+            var(--paper-grad) !important;
+        background-size: 16px 16px, 100% 100% !important;
+    }
+
+    /* 摺線記號：只在紙張上下邊緣打短記號，不貫穿內容。
+       落在每個 A5 頁面的外側邊界 = 對折線的位置。 */
+    body.template-detailed.imposition .impose-right::before,
+    body.template-detailed.imposition .impose-right::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        width: 0;
+        border-left: 0.4mm dashed #9A9A9A;
+        height: 5mm;
+    }
+
+    body.template-detailed.imposition .impose-right::before { top: 0; }
+    body.template-detailed.imposition .impose-right::after  { bottom: 0; }
+
+    body.template-detailed.imposition .book-page {
+        position: relative;
+    }
+}
+
+/* 合併流排版後，每一節開頭需要一個比小標更明顯的大標，
+   讀者才看得出「這裡開始是新的一節」。 */
+.info-lead-title {
+    font-size: 15px;
+    font-weight: bold;
+    color: var(--secondary);
+    font-family: var(--title-family);
+    letter-spacing: var(--title-spacing);
+    border-bottom: 2px solid var(--secondary);
+    padding-bottom: 4px;
+    margin: 16px 0 8px 0;
+}
+
+.info-column > .info-lead-title:first-child {
+    margin-top: 0;
+}
+
+/* 頁首已經寫了本頁第一節的名稱，該節的大標就不必再重複一次 */
+.info-column:first-child > .info-lead-title:first-child {
+    display: none;
+}

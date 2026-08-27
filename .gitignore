@@ -1,0 +1,6 @@
+.DS_Store
+Thumbs.db
+bird/
+example/
+_reference/
+*.bak_*
