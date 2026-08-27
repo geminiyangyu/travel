@@ -170,16 +170,16 @@
                         </select>
                     </div>
 
-                    <h1 class="cover-title" id="cover-main-title">東京旅行手冊</h1>
+                    <h1 class="cover-title" id="cover-main-title">旅行手冊</h1>
                     
                     <div class="cover-image-container">
-                        <img src="assets/cover.jpg" alt="Tokyo Cover" class="cover-art" id="cover-img" onerror="if (!this.src.includes('cover_dog')) this.src='assets/cover_dog.jpg';">
+                        <img src="assets/cover.jpg" alt="手冊封面" class="cover-art" id="cover-img" onerror="if (!this.src.includes('cover_dog')) this.src='assets/cover_dog.jpg';">
                     </div>
 
                     <div class="cover-meta">
                         <div class="meta-item">
                             <span class="meta-label">📅 旅行日期</span>
-                            <span class="meta-val" id="cover-dates">2026.06.15 一 — 06.19 五</span>
+                            <span class="meta-val" id="cover-dates">—</span>
                         </div>
                         <div class="meta-item">
                             <span class="meta-label">🐾 旅行小夥伴</span>
@@ -444,7 +444,7 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="edit-dates">旅行日期文字 (例如: 2026.06.15 — 06.19)</label>
+                            <label for="edit-dates">旅行日期文字 (例如: 2027.03.01 — 03.05)</label>
                             <input type="text" id="edit-dates">
                         </div>
                     </div>
@@ -577,7 +577,7 @@
 
 === START_FILE: styles.css ===
 /* ==========================================================================
-   東京旅行手冊 2026 - 全局樣式 & 設計系統 (標楷體 & 質感紙感)
+   旅行手冊 - 全局樣式 & 設計系統 (標楷體 & 質感紙感)
    ========================================================================== */
 
 :root {
