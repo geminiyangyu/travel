@@ -12,6 +12,7 @@ function __travelAppMain() {
             countdownDate: "",
             badgeText: "TRAVEL",
             mascot: "dog",
+            city: "tokyo",
             template: "compact",
             flights: {
                 depTime: "",
@@ -72,6 +73,9 @@ function __travelAppMain() {
                     if (!h.template) {
                         h.template = "compact";
                     }
+                    if (!h.city) {
+                        h.city = "tokyo";
+                    }
                     if (!h.customPages) {
                         h.customPages = [];
                     }
@@ -95,9 +99,18 @@ function __travelAppMain() {
         }
     }
 
+    // 回傳是否存檔成功。購物清單的照片是 base64 存在同一份資料裡，
+    // 存太多張會撞到 localStorage 上限；那時要讓呼叫端能把剛加的那張退掉，
+    // 而不是整份手冊靜悄悄地存不進去。
     function saveAllData() {
-        localStorage.setItem('travel_handbooks', JSON.stringify(handbooks));
-        localStorage.setItem('active_handbook_id', currentHandbookId);
+        try {
+            localStorage.setItem('travel_handbooks', JSON.stringify(handbooks));
+            localStorage.setItem('active_handbook_id', currentHandbookId);
+            return true;
+        } catch (err) {
+            alert('儲存空間已滿，這張照片沒有存進去。\n\n請先刪掉幾張購物清單的照片，或用「匯出加密行程檔」備份後再繼續。');
+            return false;
+        }
     }
 
     function getCurrentHandbook() {
@@ -125,8 +138,32 @@ function __travelAppMain() {
         });
     }
 
+    // 重繪會把所有頁面砍掉重建，.active 也一起消失 —— 互動模式下畫面就變成
+    // 一整片空白，非得重新載入才回得來（刪掉一格照片、換一張圖都會遇到）。
+    // 重建完呼叫這個回到原本停留的那一頁。
+    function restoreActivePage(prevId) {
+        if (document.body.classList.contains('booklet-preview')) return;
+        const pages = [...document.querySelectorAll('.book-page')];
+        if (!pages.length) return;
+        if (pages.some(p => p.classList.contains('active'))) return;
+
+        let target = prevId ? document.getElementById(prevId) : null;
+        if (!target && prevId) {
+            // 原本那一頁整個被刪掉了（例如刪掉購物清單最後一格）。
+            // 退到同一類的第一頁，再退到第一頁，總之不能留一片空白。
+            const kind = prevId.replace(/^page-/, '').replace(/-?\d+$/, '');
+            if (kind) target = pages.find(p => p.id.replace(/^page-/, '').startsWith(kind));
+        }
+        if (!target) target = pages[0];
+
+        const nav = document.querySelector(
+            `.sidebar-menu .nav-item[data-page="${target.id.replace(/^page-/, '')}"]`);
+        if (nav) nav.click(); else target.classList.add('active');
+    }
+
     // 重新渲染整個手冊頁面內容
     function renderCurrentHandbook() {
+        const keepPageId = (document.querySelector('.book-page.active') || {}).id || null;
         const book = getCurrentHandbook();
         if (!book) {
             alert("找不到目前手冊資料");
@@ -239,16 +276,60 @@ function __travelAppMain() {
             dynamicDayNav.appendChild(navLink);
 
             // 2. 生成每日詳細日程 Page
-            const transportListHtml = (day.transport || []).map(t => `<li>${t}</li>`).join('');
-            const tipsHtml = (day.tips || []).map(tip => `<p>${tip}</p>`).join('');
+            // JSON 匯入的內容也要能在頁面上直接改，不必回去編 JSON
+            const transportListHtml = (day.transport || []).map((t, ti) =>
+                `<li class="info-edit" contenteditable="true" spellcheck="false" data-book-path="days.${index}.transport.${ti}">${escapeHtml(t)}</li>`).join('');
+            const tipsHtml = (day.tips || []).map((tip, pi) =>
+                `<p class="info-edit" contenteditable="true" spellcheck="false" data-book-path="days.${index}.tips.${pi}">${escapeHtml(tip)}</p>`).join('');
             
+            // 轉乘明細（參考 Canva 京阪手冊的交通模組）。
+            // 格式固定成「路線（往哪個方向）＋ 起站(時間) → 迄站(時間)」，
+            // 一段一列，要轉幾次就疊幾列 —— 現場照著唸就搭得到車。
+            // 只在雙頁詳細版出現：單頁版與四折頁的紙面塞不下這麼多行。
+            const transitHtml = (day.timeline || []).map((item, ti) => {
+                if (activeTemplate !== 'detailed') return '';
+                const legs = Array.isArray(item.transit) ? item.transit : [];
+                const legsHtml = legs.map((lg, li) => `
+                    <div class="transit-leg">
+                        <span class="transit-line info-edit" contenteditable="true" spellcheck="false"
+                              data-book-path="days.${index}.timeline.${ti}.transit.${li}.line">${escapeHtml(lg.line || '')}</span>
+                        <span class="transit-od">
+                            <span class="info-edit" contenteditable="true" spellcheck="false"
+                                  data-book-path="days.${index}.timeline.${ti}.transit.${li}.from">${escapeHtml(lg.from || '')}</span>
+                            <span class="transit-time info-edit" contenteditable="true" spellcheck="false"
+                                  data-book-path="days.${index}.timeline.${ti}.transit.${li}.fromTime">${escapeHtml(lg.fromTime || '')}</span>
+                            <span class="transit-arrow">→</span>
+                            <span class="info-edit" contenteditable="true" spellcheck="false"
+                                  data-book-path="days.${index}.timeline.${ti}.transit.${li}.to">${escapeHtml(lg.to || '')}</span>
+                            <span class="transit-time info-edit" contenteditable="true" spellcheck="false"
+                                  data-book-path="days.${index}.timeline.${ti}.transit.${li}.toTime">${escapeHtml(lg.toTime || '')}</span>
+                        </span>
+                        <button type="button" class="transit-del no-print"
+                                data-day-index="${index}" data-stop-index="${ti}" data-leg-index="${li}"
+                                title="刪除這一段">×</button>
+                    </div>`).join('');
+                return `
+                    <div class="transit-block${legs.length ? '' : ' is-empty'}">
+                        ${legsHtml}
+                        <button type="button" class="transit-add no-print"
+                                data-day-index="${index}" data-stop-index="${ti}">＋ 加一段轉乘</button>
+                    </div>`;
+            });
+
             // 車程時間標示（參考沖繩手帳：站與站之間標「🚗 38分」，自駕抓節奏用）
             const timelineHtml = (day.timeline || []).map((item, ti) => `
                 <div class="timeline-item">
                     <div class="timeline-node"></div>
                     <div class="timeline-desc">
-                        <h5>${item.title}</h5>
-                        <p>${highlightKeywords(item.desc)}</p>
+                        <span class="timeline-time info-edit" contenteditable="true" spellcheck="false"
+                              data-book-path="days.${index}.timeline.${ti}.time"
+                              data-placeholder="--:--">${escapeHtml(item.time || '')}</span>
+                        <h5 class="info-edit" contenteditable="true" spellcheck="false"
+                            data-book-path="days.${index}.timeline.${ti}.title">${escapeHtml(item.title || '')}</h5>
+                        <p class="info-edit" contenteditable="true" spellcheck="false"
+                           data-book-path="days.${index}.timeline.${ti}.desc"
+                           data-highlight="1">${highlightKeywords(item.desc)}</p>
+                        ${transitHtml[ti] || ''}
                     </div>
                 </div>
                 ${ti < (day.timeline || []).length - 1 ? `
@@ -259,15 +340,46 @@ function __travelAppMain() {
                 </div>` : ''}
             `).join('');
 
+            // 今日路線摘要與使用票券：這兩塊是「復古車票風」骨架的左右兩欄
+            // （參考 Canva 京阪手冊：半版照片下面，左邊時間軸、右邊票券與簡介）。
+            // 其他風格只顯示票券，路線摘要交給 Page B 的時間軸，不重複佔版面。
+            const railHtml = `
+                <div class="day-rail">
+                    <div class="day-rail-title">今日路線</div>
+                    ${(day.timeline || []).map((item, ti) => `
+                        <div class="day-rail-item">
+                            <span class="day-rail-time">${escapeHtml(item.time || '')}</span>
+                            <span class="day-rail-name">${escapeHtml(
+                                String(item.title || '').replace(/^\s*第[一二三四五六七八九十\d]+站\s*[:：]\s*/, ''))}</span>
+                        </div>`).join('')}
+                </div>`;
+
+            const tickets = Array.isArray(day.tickets) ? day.tickets : [];
+            const ticketsHtml = `
+                <div class="day-tickets">
+                    <div class="day-tickets-title">🎟 使用票券</div>
+                    <ul class="day-tickets-list">
+                        ${tickets.map((tk, ki) => `
+                            <li>
+                                <span class="info-edit" contenteditable="true" spellcheck="false"
+                                      data-book-path="days.${index}.tickets.${ki}">${escapeHtml(tk)}</span>
+                                <button type="button" class="ticket-del no-print"
+                                        data-day-index="${index}" data-ticket-index="${ki}" title="刪除">×</button>
+                            </li>`).join('')}
+                    </ul>
+                    <button type="button" class="ticket-add no-print" data-day-index="${index}">＋ 加票券</button>
+                </div>`;
+
             const mascotKey = book.mascot || 'dog';
-            const dayImageSrc = day.customImage ? day.customImage : `assetsnew/${mascotKey}_day${index + 1}.jpg`;
+            const cityKey = normalizeCity(book.city);
+            const dayImageSrc = day.customImage ? day.customImage : dayImagePath(cityKey, mascotKey, index + 1);
 
             // 每日推薦照片牆。同一份資料，三種風格排法完全不同：
             //   日系圖鑑風 → 方格圖鑑牆   手帳風 → 圓形剪貼   灰藍風 → 扁平卡片
             // 排法差異全部在 CSS，這裡只負責產生語意一致的結構。
             const galleryItems = ((book.infoPages && book.infoPages.gallery) || [])[index] || [];
             const galleryHtml = `
-                <div class="day-gallery">
+                <div class="day-gallery${galleryItems.length ? '' : ' is-empty'}">
                     <div class="day-gallery-title">🍜 今日推薦</div>
                     <div class="day-gallery-grid">
                         ${galleryItems.map((g, gi) => `
@@ -317,23 +429,26 @@ function __travelAppMain() {
                                 <span class="day-num">${day.dayNum || 'DAY'}</span>
                                 <span class="day-calendar">${day.dateText || ''}</span>
                             </div>
-                            <h2 class="day-title">${day.title || ''}</h2>
+                            <h2 class="day-title info-edit" contenteditable="true" spellcheck="false" data-book-path="days.${index}.title">${escapeHtml(day.title || '')}</h2>
                         </div>
 
                         <div class="day-top-grid">
                             <div class="day-hero-image">
                                 <div class="washi-tape"></div>
-                                <img src="${dayImageSrc}" alt="${day.title}" class="day-art" data-day-index="${index}" onerror="${day.customImage ? '' : `handleDayImgError(this, '${mascotKey}', ${index})`}">
+                                <img src="${dayImageSrc}" alt="${day.title}" class="day-art" data-day-index="${index}" onerror="${day.customImage ? '' : `handleDayImgError(this, '${cityKey}', '${mascotKey}', ${index})`}">
                             </div>
 
                             <div class="day-sidebar">
+                                ${railHtml}
                                 <div class="info-card">
                                     <h4>🚇 今日交通與說明</h4>
                                     <ul class="info-list">
                                         ${transportListHtml}
                                     </ul>
                                 </div>
-                                
+
+                                ${ticketsHtml}
+
                                 ${tipsHtml ? `
                                 <div class="info-card warning">
                                     <h4>💡 漫遊小貼士</h4>
@@ -357,7 +472,7 @@ function __travelAppMain() {
                                 <span class="day-num">${day.dayNum || 'DAY'}</span>
                                 <span class="day-calendar">${day.dateText || ''}</span>
                             </div>
-                            <h2 class="day-title">${day.title || ''} (景點行程)</h2>
+                            <h2 class="day-title"><span class="info-edit" contenteditable="true" spellcheck="false" data-book-path="days.${index}.title">${escapeHtml(day.title || '')}</span> (景點行程)</h2>
                         </div>
 
                         <div class="day-bottom-timeline">
@@ -385,13 +500,13 @@ function __travelAppMain() {
                                 <span class="day-num">${day.dayNum || 'DAY'}</span>
                                 <span class="day-calendar">${day.dateText || ''}</span>
                             </div>
-                            <h2 class="day-title">${day.title || ''}</h2>
+                            <h2 class="day-title info-edit" contenteditable="true" spellcheck="false" data-book-path="days.${index}.title">${escapeHtml(day.title || '')}</h2>
                         </div>
 
                         <div class="day-top-grid">
                             <div class="day-hero-image">
                                 <div class="washi-tape"></div>
-                                <img src="${dayImageSrc}" alt="${day.title}" class="day-art" data-day-index="${index}" onerror="${day.customImage ? '' : `handleDayImgError(this, '${mascotKey}', ${index})`}">
+                                <img src="${dayImageSrc}" alt="${day.title}" class="day-art" data-day-index="${index}" onerror="${day.customImage ? '' : `handleDayImgError(this, '${cityKey}', '${mascotKey}', ${index})`}">
                             </div>
 
                             <div class="day-sidebar">
@@ -431,6 +546,9 @@ function __travelAppMain() {
 
         // --- 旅遊資訊頁動態生成（排在每日行程之後）---
         renderInfoPages(book);
+
+        // --- 購物清單（要買的）---
+        renderShoppingPages(book);
 
         // --- 封底 ---
         renderBackCover(book);
@@ -497,8 +615,16 @@ function __travelAppMain() {
             if (dynamicCustomPages) dynamicCustomPages.appendChild(section);
         });
 
-        // 重新綁定動態生成的 Nav 項目事件
+        // 這一段的順序是有意義的，不能任意調換：
+        //   排除狀態 → 跨頁對齊（要先知道哪些頁不印，才算得出頁碼奇偶）
+        //   → 綁導覽（對齊會新增補頁，補頁也要有導覽）
+        //   → 編頁碼 → 拼版（兩者都依賴最終的頁面序列）
+        applyExcluded(book);
+        applySpreadAlignment(book);
+
         bindDynamicNavEvents();
+        restoreActivePage(keepPageId);
+        renderPageToggles(book);
 
         // 頁碼：DOM 順序就是閱讀順序，封面與封底不編號
         numberPages();
@@ -882,6 +1008,13 @@ function __travelAppMain() {
                 if (next) next.classList.add('active');
             }
 
+            // 購物清單同理：續頁跟著一起顯示成跨頁
+            if (/^shop-\d+$/.test(pageId)) {
+                const n = parseInt(pageId.slice(5), 10);
+                const next = document.getElementById(`page-shop-${n + 1}`);
+                if (next) next.classList.add('active');
+            }
+
             if (!document.body.classList.contains('booklet-preview')) {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
@@ -896,7 +1029,7 @@ function __travelAppMain() {
             newItem.addEventListener('click', (e) => {
                 e.preventDefault();
                 const pageId = newItem.getAttribute('data-page');
-                
+
                 if (document.body.classList.contains('booklet-preview')) {
                     const targetPage = document.getElementById(`page-${pageId}`);
                     if (targetPage) {
@@ -908,6 +1041,20 @@ function __travelAppMain() {
                 } else {
                     switchPage(pageId);
                 }
+
+                // 好幾個小節常常合併在同一頁上（飯店資訊與出國須知就是），
+                // 導覽全部指向同一個 pageId，於是點「出國須知」畫面完全不動，
+                // 看起來就像壞掉。這裡再捲到該小節的標題並閃一下，
+                // 讓使用者知道自己要看的東西在哪。
+                const anchor = newItem.getAttribute('data-anchor');
+                if (!anchor) return;
+                setTimeout(() => {
+                    const el = document.getElementById(anchor);
+                    if (!el) return;
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.classList.add('nav-flash');
+                    setTimeout(() => el.classList.remove('nav-flash'), 1500);
+                }, 260);
             });
         });
     }
@@ -1076,44 +1223,106 @@ function __travelAppMain() {
     // 7. 主角選擇切換 (Mascot Handler)
     // ==========================================================================
     const mascotSelect = document.getElementById('mascot-select');
+    const citySelect = document.getElementById('city-select');
     const coverImg = document.getElementById('cover-img');
     const coverPartner = document.getElementById('cover-partner');
     const brandEmoji = document.querySelector('.brand-emoji');
     const brandTitle = document.getElementById('sidebar-title');
 
-    // 每日插圖新舊資料夾降級機制：優先讀 assetsnew（16:9 精修版），
-    // 若該主角/天數在 assetsnew 沒有對應圖，依序退回舊版 assets 資料夾的
-    // 對應天數、再退回舊版 assets 資料夾裡最接近的天數圖片。
-    window.handleDayImgError = function(imgEl, mascotKey, dayIndex) {
+    // 城市與圖庫資料夾對應：每個城市底下有自己的主角圖庫，
+    // assetsNew/{city}/{mascot}/{檔名前綴}_day{N}.jpg，東京檔名前綴就是主角
+    // 本身（沿用最早期的命名），關西則多一個 kansai_ 前綴（跟實際檔案一致）。
+    // 以後要加新城市，在這裡多加一組設定、依同樣的資料夾規則放圖就好。
+    const CITY_CONFIG = {
+        tokyo: { label: '東京', emoji: '🗼', prefix: (m) => m },
+        kansai: { label: '關西', emoji: '⛩️', prefix: (m) => `kansai_${m}` }
+    };
+
+    function normalizeCity(cityKey) {
+        return CITY_CONFIG[cityKey] ? cityKey : 'tokyo';
+    }
+
+    function dayImagePath(cityKey, mascotKey, dayNum) {
+        const city = normalizeCity(cityKey);
+        const prefix = CITY_CONFIG[city].prefix(mascotKey);
+        return `assetsNew/${city}/${mascotKey}/${prefix}_day${dayNum}.jpg`;
+    }
+
+    function coverImagePath(cityKey, mascotKey) {
+        const city = normalizeCity(cityKey);
+        const prefix = CITY_CONFIG[city].prefix(mascotKey);
+        return `assetsNew/${city}/${mascotKey}/${prefix}_cover.jpg`;
+    }
+
+    // 每日插圖降級機制：優先讀「目前城市」的精修圖。如果該城市這個主角/這天
+    // 還沒拍好（例如關西狗狗、兔子還在製作中），先借東京同一個主角、同一天
+    // 的圖頂著，維持有圖可看；如果本來就已經是東京了（理論上不該再失敗），
+    // 最後保底退到東京同主角的第一天圖。
+    window.handleDayImgError = function(imgEl, cityKey, mascotKey, dayIndex) {
         const stage = imgEl.dataset.imgFallbackStage || '0';
         if (stage === '0') {
-            // 該主角在該天還沒有 assetsnew 精修圖（例如兔子目前只做到 Day 3），
-            // 先退回同一個主角的 assetsnew 第一天封面照，維持風格一致。
-            imgEl.dataset.imgFallbackStage = '1';
-            imgEl.src = `assetsnew/${mascotKey}_day1.jpg`;
+            if (normalizeCity(cityKey) !== 'tokyo') {
+                imgEl.dataset.imgFallbackStage = '1';
+                imgEl.src = dayImagePath('tokyo', mascotKey, dayIndex + 1);
+                return;
+            }
+            imgEl.dataset.imgFallbackStage = '2';
+            imgEl.src = dayImagePath('tokyo', mascotKey, 1);
+        } else if (stage === '1') {
+            imgEl.dataset.imgFallbackStage = '2';
+            imgEl.src = dayImagePath('tokyo', mascotKey, 1);
+        } else {
+            imgEl.onerror = null;
+        }
+    };
+
+    // 封面圖降級機制，邏輯跟每日插圖一樣：本城市這個主角沒封面 → 借東京同
+    // 主角封面 → 還是沒有 → 保底用東京馬爾濟斯封面（一定存在）。
+    window.handleCoverImgError = function(imgEl, cityKey, mascotKey) {
+        const stage = imgEl.dataset.imgFallbackStage || '0';
+        if (stage === '0') {
+            if (normalizeCity(cityKey) !== 'tokyo') {
+                imgEl.dataset.imgFallbackStage = '1';
+                imgEl.src = coverImagePath('tokyo', mascotKey);
+                return;
+            }
+            imgEl.dataset.imgFallbackStage = '2';
+            imgEl.src = coverImagePath('tokyo', 'dog');
+        } else if (stage === '1') {
+            imgEl.dataset.imgFallbackStage = '2';
+            imgEl.src = coverImagePath('tokyo', 'dog');
         } else {
             imgEl.onerror = null;
         }
     };
 
     const MASCOT_CONFIG = {
-        dog: { emoji: '🐶', mascotName: '馬爾濟斯', brand: '東京手冊', img: 'assets/cover_dog.jpg' },
-        cat: { emoji: '🐱', mascotName: '溫馨貓貓', brand: '貓貓手冊', img: 'assets/cover_cat.jpg' },
-        rabbit: { emoji: '🐰', mascotName: '軟萌兔兔', brand: '兔兔手冊', img: 'assetsnew/rabbit_cover.jpg' },
-        bird: { emoji: '🐦', mascotName: '小胖', brand: '小胖手冊', img: 'assets/bird_cover.jpg' }
+        dog: { emoji: '🐶', mascotName: '馬爾濟斯', brand: '東京手冊' },
+        cat: { emoji: '🐱', mascotName: '溫馨貓貓', brand: '貓貓手冊' },
+        rabbit: { emoji: '🐰', mascotName: '軟萌兔兔', brand: '兔兔手冊' },
+        bird: { emoji: '🐦', mascotName: '小胖', brand: '小胖手冊' },
+        mouse: { emoji: '🐭', mascotName: '元氣小鼠', brand: '小鼠手冊' }
     };
 
     function applyMascot(mascotKey) {
         const config = MASCOT_CONFIG[mascotKey] || MASCOT_CONFIG.dog;
         const book = getCurrentHandbook();
-        if (book) book.mascot = mascotKey;
+        const cityKey = normalizeCity(book && book.city);
+        if (book) {
+            book.mascot = mascotKey;
+            book.city = cityKey;
+        }
 
         if (mascotSelect) mascotSelect.value = mascotKey;
+        if (citySelect) citySelect.value = cityKey;
         if (coverImg) {
             if (book && book.customCoverImage) {
+                coverImg.onerror = null;
                 coverImg.src = book.customCoverImage;
             } else {
-                coverImg.src = config.img;
+                coverImg.dataset.imgFallbackStage = '0';
+                coverImg.onerror = function () { window.handleCoverImgError(coverImg, cityKey, mascotKey); };
+                coverImg.src = coverImagePath(cityKey, mascotKey);
             }
             coverImg.alt = `Cover (${mascotKey})`;
         }
@@ -1135,7 +1344,7 @@ function __travelAppMain() {
                 img.src = day.customImage;
             } else {
                 img.dataset.imgFallbackStage = '0';
-                img.src = `assetsnew/${mascotKey}_day${idx + 1}.jpg`;
+                img.src = dayImagePath(cityKey, mascotKey, idx + 1);
             }
         });
     }
@@ -1145,6 +1354,15 @@ function __travelAppMain() {
         applyMascot(selected);
         saveAllData();
     });
+
+    if (citySelect) {
+        citySelect.addEventListener('change', (e) => {
+            const book = getCurrentHandbook();
+            if (book) book.city = normalizeCity(e.target.value);
+            applyMascot((book && book.mascot) || 'dog');
+            saveAllData();
+        });
+    }
 
     // ==========================================================================
     // 8. 多手冊自訂切換、新增、刪除操作
@@ -1199,6 +1417,7 @@ function __travelAppMain() {
                 card2Name: "玉山熊本熊卡",
                 card2Perks: ["回饋點數：指定通路最高 8.5%", "指定商店：Suica加值、藥妝、Bic Camera"]
             },
+            city: "tokyo",
             packing: [
                 { text: "護照", checked: false, category: "documents" },
                 { text: "行動電源", checked: false, category: "electronics" },
@@ -1209,7 +1428,6 @@ function __travelAppMain() {
                     dayNum: "DAY 1",
                     dateText: "10/01 (一)",
                     title: "抵達市區與漫遊",
-                    image: "assets/day1.jpg",
                     transport: ["去程航班直達", "空手開始漫遊"],
                     tips: ["拍照大片提示"],
                     timeline: [
@@ -1509,18 +1727,16 @@ function __travelAppMain() {
     // 12. 圖庫選擇與自訂路徑載入機制 (Gallery Asset Selector & Path Input V4.6)
     // ==========================================================================
     const AVAILABLE_ASSETS = [
-        // 精修 16:9 新圖（assetsnew，除封面外的每日行程優先套用這批）
-        "assetsnew/bird_cover.jpg", "assetsnew/bird_day1.jpg", "assetsnew/bird_day2.jpg", "assetsnew/bird_day3.jpg", "assetsnew/bird_day4.jpg", "assetsnew/bird_day5.jpg", "assetsnew/bird_day6.jpg",
-        "assetsnew/cat_cover.jpg", "assetsnew/cat_day1.jpg", "assetsnew/cat_day2.jpg", "assetsnew/cat_day3.jpg", "assetsnew/cat_day4.jpg", "assetsnew/cat_day5.jpg", "assetsnew/cat_day6.jpg",
-        "assetsnew/dog_cover.jpg", "assetsnew/dog_day1.jpg", "assetsnew/dog_day2.jpg", "assetsnew/dog_day3.jpg", "assetsnew/dog_day4.jpg", "assetsnew/dog_day5.jpg", "assetsnew/dog_day6.jpg",
-        "assetsnew/rabbit_cover.jpg", "assetsnew/rabbit_day1.jpg", "assetsnew/rabbit_day2.jpg", "assetsnew/rabbit_day3.jpg",
-        // 舊版圖庫（snake、panda 目前已不是可選主角，這裡留著純粹給手動換圖用）
-        "assets/bird_cover.jpg", "assets/bird_day1.jpg", "assets/bird_day2.jpg", "assets/bird_day3.jpg", "assets/bird_day4.jpg", "assets/bird_day5.jpg", "assets/bird_day6.jpg",
-        "assets/cat_day1.jpg", "assets/cat_day2.jpg", "assets/cat_day3.jpg", "assets/cat_day4.jpg", "assets/cat_day5.jpg",
-        "assets/cover.jpg", "assets/cover_cat.jpg", "assets/cover_dog.jpg", "assets/cover_panda.jpg", "assets/cover_snake.jpg",
-        "assets/day1.jpg", "assets/day2.jpg", "assets/day3.jpg", "assets/day4.jpg", "assets/day5.jpg",
-        "assets/dog_day1.jpg", "assets/dog_day2.jpg", "assets/dog_day3.jpg", "assets/dog_day4.jpg", "assets/dog_day5.jpg",
-        "assets/snake_day1.jpg", "assets/snake_day2.jpg", "assets/snake_day3.jpg"
+        // 東京圖庫（assetsNew/tokyo，4 個主角都已補齊 cover + day1-6）
+        "assetsNew/tokyo/bird/bird_cover.jpg", "assetsNew/tokyo/bird/bird_day1.jpg", "assetsNew/tokyo/bird/bird_day2.jpg", "assetsNew/tokyo/bird/bird_day3.jpg", "assetsNew/tokyo/bird/bird_day4.jpg", "assetsNew/tokyo/bird/bird_day5.jpg", "assetsNew/tokyo/bird/bird_day6.jpg",
+        "assetsNew/tokyo/cat/cat_cover.jpg", "assetsNew/tokyo/cat/cat_day1.jpg", "assetsNew/tokyo/cat/cat_day2.jpg", "assetsNew/tokyo/cat/cat_day3.jpg", "assetsNew/tokyo/cat/cat_day4.jpg", "assetsNew/tokyo/cat/cat_day5.jpg", "assetsNew/tokyo/cat/cat_day6.jpg",
+        "assetsNew/tokyo/dog/dog_cover.jpg", "assetsNew/tokyo/dog/dog_day1.jpg", "assetsNew/tokyo/dog/dog_day2.jpg", "assetsNew/tokyo/dog/dog_day3.jpg", "assetsNew/tokyo/dog/dog_day4.jpg", "assetsNew/tokyo/dog/dog_day5.jpg", "assetsNew/tokyo/dog/dog_day6.jpg",
+        "assetsNew/tokyo/rabbit/rabbit_cover.jpg", "assetsNew/tokyo/rabbit/rabbit_day1.jpg", "assetsNew/tokyo/rabbit/rabbit_day2.jpg", "assetsNew/tokyo/rabbit/rabbit_day3.jpg", "assetsNew/tokyo/rabbit/rabbit_day4.jpg", "assetsNew/tokyo/rabbit/rabbit_day5.jpg", "assetsNew/tokyo/rabbit/rabbit_day6.jpg",
+        "assetsNew/tokyo/mouse/mouse_cover.jpg", "assetsNew/tokyo/mouse/mouse_day1.jpg", "assetsNew/tokyo/mouse/mouse_day2.jpg", "assetsNew/tokyo/mouse/mouse_day3.jpg", "assetsNew/tokyo/mouse/mouse_day4.jpg", "assetsNew/tokyo/mouse/mouse_day5.jpg", "assetsNew/tokyo/mouse/mouse_day6.jpg", "assetsNew/tokyo/mouse/mouse_day6_alt.jpg", "assetsNew/tokyo/mouse/mouse_day7.jpg",
+        // 關西圖庫（assetsNew/kansai，還在陸續補圖：鳥已到 day7、貓只有 day1，
+        // 狗和兔子還沒有圖——選這兩個主角時關西頁面會自動借用東京的圖頂著）
+        "assetsNew/kansai/bird/kansai_bird_cover.jpg", "assetsNew/kansai/bird/kansai_bird_day1.jpg", "assetsNew/kansai/bird/kansai_bird_day2.jpg", "assetsNew/kansai/bird/kansai_bird_day3.jpg", "assetsNew/kansai/bird/kansai_bird_day4.jpg", "assetsNew/kansai/bird/kansai_bird_day5.jpg", "assetsNew/kansai/bird/kansai_bird_day6.jpg", "assetsNew/kansai/bird/kansai_bird_day7.jpg",
+        "assetsNew/kansai/cat/kansai_cat_cover.jpg", "assetsNew/kansai/cat/kansai_cat_day1.jpg"
     ];
 
     let imageSelectorTarget = null; // { type: 'cover' } or { type: 'day', dayIndex: idx }
@@ -1730,12 +1946,16 @@ function __travelAppMain() {
     //   - 風格 (STYLE)             = 配色/字體/邊框，存全域一份，換手冊不會變。
     // 因此這裡用獨立的 localStorage key，不寫進 handbook 資料。
     const STYLE_KEY = 'travel_style';
-    const STYLES = ['washi', 'minimal', 'magazine', 'ticket', 'doodle', 'scrapbook', 'slate', 'agency'];
+    const STYLES = ['washi', 'ticket', 'doodle', 'scrapbook', 'slate'];
     const DEFAULT_STYLE = 'washi';
 
     function getActiveStyle() {
         const saved = localStorage.getItem(STYLE_KEY);
-        return STYLES.includes(saved) ? saved : DEFAULT_STYLE;
+        if (STYLES.includes(saved)) return saved;
+        // 使用者可能存著已經移除的風格（極簡／雜誌／旅行社），回退到預設值
+        // 並順手把 localStorage 一起更正，否則下拉選單顯示的與實際存的會不一致。
+        if (saved) localStorage.setItem(STYLE_KEY, DEFAULT_STYLE);
+        return DEFAULT_STYLE;
     }
 
     function applyStyle(styleName) {
@@ -1751,6 +1971,43 @@ function __travelAppMain() {
         styleSelect.addEventListener('change', (e) => {
             localStorage.setItem(STYLE_KEY, e.target.value);
             applyStyle(e.target.value);
+        });
+    }
+
+    // ==========================================================================
+    // 11b. 骨架（版面結構）—— 和風格分開
+    // ==========================================================================
+    // 第一版把「時刻表骨架」綁死在復古車票風、「手帳骨架」綁死在日系手帳風，
+    // 等於使用者想要時刻表的排法就只能吃那組配色。風格管的是外觀（配色、
+    // 字體、邊框、裝飾），骨架管的是結構（照片多大、資訊怎麼排、時間軸長相），
+    // 這是兩件事，應該可以自由搭配 —— 5 種風格 × 3 種骨架 = 15 種組合。
+    //
+    // 骨架只作用在雙頁詳細版的每日行程頁：那是唯一有足夠紙面能做出明顯
+    // 結構差異的版型，單頁版與四折頁改了只會擠成一團。
+    const SKELETON_KEY = 'travel_skeleton';
+    const SKELETONS = ['classic', 'timetable', 'journal'];
+    const DEFAULT_SKELETON = 'classic';
+
+    function getActiveSkeleton() {
+        const saved = localStorage.getItem(SKELETON_KEY);
+        if (SKELETONS.includes(saved)) return saved;
+        if (saved) localStorage.setItem(SKELETON_KEY, DEFAULT_SKELETON);
+        return DEFAULT_SKELETON;
+    }
+
+    function applySkeleton(name) {
+        const key = SKELETONS.includes(name) ? name : DEFAULT_SKELETON;
+        document.body.classList.remove(...SKELETONS.map(k => `skeleton-${k}`));
+        document.body.classList.add(`skeleton-${key}`);
+        const sel = document.getElementById('skeleton-select');
+        if (sel) sel.value = key;
+    }
+
+    const skeletonSelect = document.getElementById('skeleton-select');
+    if (skeletonSelect) {
+        skeletonSelect.addEventListener('change', (e) => {
+            localStorage.setItem(SKELETON_KEY, e.target.value);
+            applySkeleton(e.target.value);
         });
     }
 
@@ -1792,8 +2049,8 @@ function __travelAppMain() {
     const INFO_DEFAULTS_JP = {
         notice: [
             { label: '氣候', text: '出發前請查詢當地即時氣象預報，依日夜溫差準備保暖衣物；夏季悶熱潮濕請注意補水與防曬。' },
-            { label: '託運行李', text: '建議以一件為原則，重量不超過 23 公斤，長寬高總和不超過 158 公分。' },
-            { label: '手提行李', text: '一件為原則，重量不超過 7 公斤，長寬高總和不超過 115 公分。' },
+            { label: '手提行李', text: '台灣虎航：登機箱 1 件 + 隨身物品 1 件，兩件合計不超過 10 公斤；登機箱含輪子與拉桿不超過 54 × 38 × 23 公分。廉航這關查得比傳統航空嚴，超了就要現場付費託運。' },
+            { label: '託運行李', text: '台灣虎航：tigerlight 不含託運，需另外加購；tigersmart／tigerpro 各含 1 件 20 公斤。單件上限 30 公斤、每人總計上限 40 公斤，三邊和不超過 203 公分。超重採累進計費，現場加購比線上貴不少，請務必事先在訂位時買好。' },
             { label: '行動電源', text: '行動電源與備用鋰電池只能隨身攜帶，不可放入託運行李；飛行期間禁止在座位上使用行動電源充電。' },
             { label: '液體規定', text: '隨身液體每瓶不超過 100ml，須裝入 1 公升以下透明夾鏈袋；超過者請放託運行李。' },
             { label: '匯率', text: '1 日圓（JPY）約 0.21 新台幣（TWD），實際請以出發前銀行牌告匯率為準。' },
@@ -1962,9 +2219,20 @@ function __travelAppMain() {
             seeded = true;
         }
         while (ip.gallery.length < dayCount) {
-            ip.gallery.push(ip.gallery.length === 0
-                ? JSON.parse(JSON.stringify(INFO_DEFAULTS_JP.gallery))
-                : []);
+            // 一律留空。之前第一天會塞六筆範例，但那是示範用的假資料，
+            // 出現在使用者自己的行程裡只是干擾，改由「＋新增推薦」自己加。
+            ip.gallery.push([]);
+            seeded = true;
+        }
+
+        // 一次性清理：把先前版本塞進去、且使用者沒改過的那批範例推薦移除。
+        // 只比對「名稱與說明都完全沒動過」的項目，使用者自己加的或改過的保留。
+        if (!ip._gallerySeedCleared) {
+            const SEED = INFO_DEFAULTS_JP.gallery || [];
+            ip.gallery = ip.gallery.map(list => (Array.isArray(list) ? list : []).filter(
+                item => !SEED.some(sd => sd.name === item.name && sd.note === item.note && !item.img)
+            ));
+            ip._gallerySeedCleared = true;
             seeded = true;
         }
 
@@ -2031,10 +2299,19 @@ function __travelAppMain() {
 
         const isTitle = blocks.map(b => /info-section-title/.test(b.html));
 
+        // 小標後面至少要跟著幾則內容，這一欄才留得住它。
+        // 只擋「標題落在最後一行」還不夠：像「點餐」後面只跟著一則「請給我菜單」
+        // 就換欄，看起來仍然是斷掉的。要求兩則，讀者才看得出這是一個新分類。
+        const MIN_AFTER_TITLE = 2;
+
         // 依「軟上限 limit」貪婪切欄。limit 一定不會超過實際容量 cap.height。
+        // cur 存的是「區塊的索引」而不是區塊本身，這樣才找得回某一則在原陣列
+        // 的位置，回頭重排時不必用 indexOf 掃描。
         function fill(limit) {
             const cols2 = [];
             let cur = [], used = 0;
+            const flush = () => { cols2.push(cur.map(j => blocks[j])); cur = []; used = 0; };
+
             for (let i = 0; i < blocks.length; i++) {
                 const h = heights[i] || 0;
 
@@ -2043,30 +2320,33 @@ function __travelAppMain() {
                     cols2.push([blocks[i]]);
                     continue;
                 }
+
                 if (used + h > limit && cur.length) {
-                    // 避免「孤兒標題」：小標若剛好落在欄末，把它一起帶到下一欄，
-                    // 否則會出現標題在這頁最下面、內容全在下一欄的難看情形。
-                    if (cur.length > 1 && isTitle[i - 1] && cur[cur.length - 1] === blocks[i - 1]) {
-                        cur.pop();
-                        used -= heights[i - 1] || 0;
-                        cols2.push(cur);
-                        cur = [];
-                        used = 0;
-                        // 要「重新處理被退回的那個標題」。for 迴圈結尾會 i++，
-                        // 所以必須退兩格；只退一格會與 i++ 抵銷，標題被跳過而消失。
-                        i -= 2;
+                    // 這一欄結尾如果是「小標 + 不足 MIN_AFTER_TITLE 則」，
+                    // 把整組退回去，跟著下一欄一起走。
+                    let cut = -1;
+                    for (let k = cur.length - 1; k >= 0 && cur.length - k <= MIN_AFTER_TITLE; k--) {
+                        if (isTitle[cur[k]]) { cut = k; break; }
+                    }
+                    // cut === 0 代表整欄從標題開始，再退就沒東西了，會無限迴圈
+                    if (cut > 0) {
+                        const moved = cur.slice(cut);
+                        moved.forEach(j => { used -= heights[j] || 0; });
+                        cur = cur.slice(0, cut);
+                        flush();
+                        // 回到被退回的那個標題重新處理。for 迴圈結尾會 i++，
+                        // 所以這裡要設成「標題的前一格」。
+                        i = moved[0] - 1;
                         continue;
                     }
-                    cols2.push(cur);
-                    cur = [];
-                    used = 0;
+                    flush();
                     // 注意：這裡不能 continue —— 換欄之後仍要把「當前這個區塊」
                     // 放進新的一欄，否則它會被整個跳過、內容憑空消失。
                 }
-                cur.push(blocks[i]);
+                cur.push(i);
                 used += h;
             }
-            if (cur.length) cols2.push(cur);
+            if (cur.length) cols2.push(cur.map(j => blocks[j]));
             return cols2;
         }
 
@@ -2254,12 +2534,18 @@ function __travelAppMain() {
                     <div class="info-phrase-ja">${editable(`phrases.${i}.ja`, ph.ja)}</div>
                 </div>` });
         });
-        blocks.push({ group: '實用語句', html: `<div class="info-section-title">🤝 出國宣誓</div>` });
+        // 出國宣誓：每一條都可以刪，標題旁邊可以加。
+        // ＋／× 都是絕對定位的 no-print 按鈕，不佔版面高度，
+        // 所以不會影響分頁計算，列印時也不會出現。
+        blocks.push({ group: '實用語句', html: `
+            <div class="info-section-title has-add">🤝 出國宣誓<button type="button"
+                 class="oath-add no-print" title="新增一條宣誓">＋</button></div>` });
         ip.oath.forEach((line, i) => {
             blocks.push({ group: '實用語句', html: `
                 <div class="info-oath">
                     <span class="info-oath-no">${i + 1}</span>
                     <span class="info-oath-text">${editable(`oath.${i}`, line)}</span>
+                    <button type="button" class="oath-del no-print" data-oath-index="${i}" title="刪除這一條">×</button>
                 </div>` });
         });
         return blocks;
@@ -2301,7 +2587,7 @@ function __travelAppMain() {
                 group: def.title,
                 sectionKey: def.key,
                 isLead: true,
-                html: `<div class="info-lead-title" data-section="${def.key}">${def.icon} ${def.title}</div>`,
+                html: `<div class="info-lead-title" id="lead-${def.key}" data-section="${def.key}">${def.icon} ${def.title}</div>`,
             };
             const tagged = [lead, ...blocks].map(b => ({ ...b, sectionKey: def.key }));
 
@@ -2377,6 +2663,7 @@ function __travelAppMain() {
                 a.href = `#page-${pageId}`;
                 a.className = 'nav-item';
                 a.setAttribute('data-page', pageId);
+                a.setAttribute('data-anchor', `lead-${def.key}`);
                 a.innerHTML = `<span class="day-badge info-badge">${def.badge}</span><span>${def.title}</span>`;
                 navBox.appendChild(a);
             });
@@ -2418,6 +2705,12 @@ function __travelAppMain() {
         if (!changed) return;
 
         saveAllData();
+
+        // 有關鍵字標記的欄位：使用者編輯時看到的是純文字（contenteditable 會
+        // 把 <mark> 當成一般節點），存完之後把標記重新套回去，不然改過一次
+        // 之後那一段就再也不會highlight了。
+        if (el.dataset.highlight) el.innerHTML = highlightKeywords(value);
+
         // 只有資訊頁的內容長度會影響分頁切點，才需要重畫。行程頁上的欄位
         // （餐食、推薦格）重畫會把使用者正在輸入的下一格砍掉重建。
         if (el.dataset.infoPath && !/^(meals|gallery)\./.test(el.dataset.infoPath)) {
@@ -2467,6 +2760,8 @@ function __travelAppMain() {
         document.querySelectorAll('.book-page').forEach(el => {
             el.style.order = '';
             el.classList.remove('impose-left', 'impose-right');
+            delete el.dataset.sheet;
+            delete el.dataset.readingNo;
         });
         document.querySelectorAll('.impose-blank').forEach(el => el.remove());
         document.body.classList.remove('imposition');
@@ -2484,16 +2779,22 @@ function __travelAppMain() {
         document.body.classList.add('imposition');
 
         const container = document.querySelector('.book-pages');
-        const pages = [...document.querySelectorAll('.book-page')];
+        // 被排除的頁不進拼版，否則會在紙上佔一格印出空白
+        const pages = [...document.querySelectorAll('.book-page')]
+            .filter(el => !el.classList.contains('page-excluded'));
         if (!pages.length) return;
 
         // 補白頁到 4 的倍數 —— 騎馬釘一張紙固定產生 4 個頁面，湊不滿會錯位
+        // 補白頁要插在封底「之前」。原本用 appendChild 接在最後面，結果實體
+        // 小冊子的最後一頁是空白、封底跑到倒數第二頁，翻到底看到的是白紙。
+        const backWrap = document.getElementById('dynamic-backcover');
         const pad = (4 - (pages.length % 4)) % 4;
         for (let i = 0; i < pad; i++) {
             const blank = document.createElement('section');
             blank.className = 'book-page impose-blank';
-            container.appendChild(blank);
-            pages.push(blank);
+            if (backWrap) container.insertBefore(blank, backWrap);
+            else container.appendChild(blank);
+            pages.splice(pages.length - (backWrap ? 1 : 0), 0, blank);
         }
 
         const N = pages.length;
@@ -2514,6 +2815,13 @@ function __travelAppMain() {
             const slot = slotOf[readingIdx];
             el.style.order = String(slot);
             el.classList.add(slot % 2 === 0 ? 'impose-left' : 'impose-right');
+            // 拼版後的順序看起來會很亂（封底就排在封面旁邊），那是正確的 ——
+            // 那是「印在紙上的排列」，不是閱讀順序。沒有標示的話使用者只會
+            // 覺得版面壞了，所以在每一張紙的左半邊標出它是第幾張的哪一面。
+            const sheet = Math.floor(slot / 4) + 1;
+            const face = (slot % 4) < 2 ? '正面' : '背面';
+            el.dataset.sheet = `第 ${sheet} 張 · ${face}`;
+            el.dataset.readingNo = String(readingIdx + 1);
         });
     }
 
@@ -2581,7 +2889,10 @@ function __travelAppMain() {
             }).join('');
             return `
                 <div class="toc-day">
-                    <div class="toc-date" style="background-color:${color}">${escapeHtml(day.dateText || day.dayNum || `D${i + 1}`)}</div>
+                    <div class="toc-date" style="background-color:${color}">
+                        <span class="toc-day-no">${escapeHtml(day.dayNum || `DAY ${i + 1}`)}</span>
+                        <span class="toc-date-text">${escapeHtml(day.dateText || '')}</span>
+                    </div>
                     <ul class="toc-stops">${stops}</ul>
                 </div>`;
         }).join('');
@@ -2600,14 +2911,15 @@ function __travelAppMain() {
         box.innerHTML = '';
 
         const mascotKey = book.mascot || 'dog';
+        const cityKey = normalizeCity(book.city);
         const sec = document.createElement('section');
         sec.id = 'page-backcover';
         sec.className = 'book-page backcover-page';
         sec.innerHTML = `
             <div class="backcover-layout">
                 <div class="backcover-art">
-                    <img src="assetsnew/${mascotKey}_cover.jpg" alt=""
-                         onerror="this.onerror=null;this.src='assets/${mascotKey}_day1.jpg';">
+                    <img src="${coverImagePath(cityKey, mascotKey)}" alt=""
+                         onerror="handleCoverImgError(this, '${cityKey}', '${mascotKey}')">
                 </div>
                 <div class="backcover-words">
                     <div class="backcover-line">旅程的最後，謝謝一路同行。</div>
@@ -2639,11 +2951,17 @@ function __travelAppMain() {
     // 「PAGE BREAK」預覽標籤與拼版摺線記號用掉了，再疊上去會打架。
     function numberPages() {
         document.querySelectorAll('.page-no').forEach(el => el.remove());
+        // 封面在實體小冊子裡就是第 1 頁 —— 它只是「不印出頁碼」，不是「不算一頁」。
+        // 之前從封面的下一頁開始編 1，結果印出來的頁碼比實際位置少 1：
+        // 照片頁明明在實體第 6 頁（偶數、左邊），卻印著 P.5（奇數）。
+        // 「奇數在右、偶數在左」這條規則就對不起來，翻起來當然覺得亂。
         let n = 0;
         document.querySelectorAll('.book-page').forEach(sec => {
-            if (sec.id === 'page-cover' || sec.id === 'page-backcover') return;
             if (sec.classList.contains('impose-blank')) return;
+            if (sec.classList.contains('page-excluded')) return;   // 不列印的頁不佔頁碼
             n++;
+            // 封面與封底照樣佔一個頁碼，只是不把數字印上去
+            if (sec.id === 'page-cover' || sec.id === 'page-backcover') return;
             const tag = document.createElement('span');
             tag.className = 'page-no';
             tag.textContent = n;
@@ -2651,10 +2969,508 @@ function __travelAppMain() {
         });
     }
 
+
+    // ==========================================================================
+    // 15. 頁面排除（不列印）
+    // ==========================================================================
+    // 使用者不一定每一頁都想印。作法是「排除」而不是「刪除」：
+    // 被排除的頁在預覽與列印中完全不出現、也不佔頁碼與拼版的位置，
+    // 但在網頁互動模式仍然看得到（淡化 + 標記），隨時可以加回來。
+    function getExcluded(book) {
+        if (!Array.isArray(book.excludedPages)) book.excludedPages = [];
+        return book.excludedPages;
+    }
+
+    function applyExcluded(book) {
+        const ex = getExcluded(book);
+        document.querySelectorAll('.book-page').forEach(sec => {
+            sec.classList.toggle('page-excluded', ex.includes(sec.id));
+        });
+    }
+
+    function renderPageToggles(book) {
+        const ex = getExcluded(book);
+        document.querySelectorAll('.page-toggle').forEach(el => el.remove());
+        document.querySelectorAll('.book-page').forEach(sec => {
+            if (sec.classList.contains('impose-blank')) return;
+            const off = ex.includes(sec.id);
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'page-toggle no-print' + (off ? ' is-off' : '');
+            btn.dataset.pageId = sec.id;
+            btn.title = off ? '目前不會列印，點一下加回來' : '點一下把這頁排除，列印時不會出現';
+            btn.textContent = off ? '✕ 不列印' : '✓ 列印';
+            sec.appendChild(btn);
+        });
+    }
+
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest && e.target.closest('.page-toggle');
+        if (!btn) return;
+        e.preventDefault();
+        const book = getCurrentHandbook();
+        if (!book) return;
+        const id = btn.dataset.pageId;
+        const ex = getExcluded(book);
+        const i = ex.indexOf(id);
+        if (i >= 0) ex.splice(i, 1); else ex.push(id);
+        saveAllData();
+        applyExcluded(book);
+        // 排除一頁會改變後面所有頁的奇偶，跨頁對齊必須跟著重算
+        applySpreadAlignment(book);
+        bindDynamicNavEvents();
+        renderPageToggles(book);
+        numberPages();
+        if (typeof applyImposition === 'function') applyImposition();
+    });
+
+    // --- 列印用純白底 ---
+    // Safari 匯出 PDF 全黑的問題，在這個環境無法重現（沒有 Safari）。
+    // 除了在 CSS 端把已知的致黑機制全部關掉之外，再留一個開關：
+    // 打開之後紙張只用純白，不畫任何裝飾底色，是「一定印得出來」的保底路線。
+    // 紙張底紋：預設關閉。使用者實測確認這幾層 CSS 漸層就是 Safari 匯出 PDF
+    // 全黑的原因（關掉＝正常，打開＝全黑），而且三個情境一起關，
+    // 螢幕上看到的才會等於印出來的樣子。
+    const TEXTURE_KEY = 'travel_paper_texture';
+    const chkTexture = document.getElementById('chk-paper-texture');
+    if (chkTexture) {
+        const on = localStorage.getItem(TEXTURE_KEY) === '1';
+        chkTexture.checked = on;
+        document.body.classList.toggle('paper-texture', on);
+        chkTexture.addEventListener('change', () => {
+            localStorage.setItem(TEXTURE_KEY, chkTexture.checked ? '1' : '0');
+            document.body.classList.toggle('paper-texture', chkTexture.checked);
+        });
+    }
+
+    const PLAIN_KEY = 'travel_print_plain';
+    const chkPrintPlain = document.getElementById('chk-print-plain');
+    if (chkPrintPlain) {
+        const on = localStorage.getItem(PLAIN_KEY) === '1';
+        chkPrintPlain.checked = on;
+        document.body.classList.toggle('print-plain', on);
+        chkPrintPlain.addEventListener('change', () => {
+            localStorage.setItem(PLAIN_KEY, chkPrintPlain.checked ? '1' : '0');
+            document.body.classList.toggle('print-plain', chkPrintPlain.checked);
+        });
+    }
+
+    // ==========================================================================
+    // 15b. 跨頁對齊（騎馬釘小冊子）
+    // ==========================================================================
+    // 騎馬釘裝訂的小冊子有一條硬規則：對折之後，奇數頁一定在右邊、偶數頁一定
+    // 在左邊，而真正「同時看得到」的一組是 (2,3)、(4,5)、(6,7)⋯⋯ P.1 是封面，
+    // 自己單獨在最前面。
+    //
+    // 所以「每天的圖頁與文頁要並排」等價於一個很單純的條件：
+    //   ▸ 圖頁（day-a）必須落在偶數頁。
+    //
+    // 實測過改之前的輸出：封面(1) + 行程簡介(2) + 刷卡(3) + 行李(4) 之後，
+    // Day1 的圖頁落在 P.5（奇數＝右頁），文頁落在 P.6（左頁）——
+    // 兩頁分屬不同的紙張，看著照片得翻頁才讀得到當天行程，六天全部都錯開。
+    //
+    // 修法刻意不寫死「前言固定 4 頁」。使用者可以自由排除頁面、之後也可能增減
+    // 前言，寫死的數字第一次被動到就失效。改成每次重繪都重新計算：
+    //   1. 數出圖頁前面有幾頁，需要的話補一頁讓它落在偶數頁
+    //   2. 封底前補到 4 的倍數（一張紙折起來固定產生 4 頁，湊不滿會錯位）
+    // 補進去的是「可以寫東西的筆記頁或集章頁」，不是空白頁。
+    const ALIGN_KEY = 'travel_align_spreads';
+    const FILLER_KEY = 'travel_filler_kind';
+
+    function isSpreadAlign() {
+        return localStorage.getItem(ALIGN_KEY) !== '0';   // 預設開啟
+    }
+
+    function getFillerKind() {
+        return localStorage.getItem(FILLER_KEY) === 'stamps' ? 'stamps' : 'notes';
+    }
+
+    function makeFillerPage(seq, reason) {
+        const kind = getFillerKind();
+        const sec = document.createElement('section');
+        sec.id = `page-filler-${seq}`;
+        sec.className = 'book-page spread-filler' + (kind === 'stamps' ? ' stamps-only-page' : '');
+        sec.dataset.tab = kind === 'stamps' ? '集章頁' : '筆記頁';
+        sec.innerHTML = kind === 'stamps'
+            ? `<div class="page-header-container">
+                   <h2 class="page-title">🌸 蓋章收集</h2>
+                   <p class="page-description">${reason}</p>
+               </div>
+               <div class="blank-stamp-area"></div>`
+            : `<div class="page-header-container">
+                   <h2 class="page-title">📝 行前筆記</h2>
+                   <p class="page-description">${reason}</p>
+               </div>
+               <div class="filler-lines"></div>`;
+        return sec;
+    }
+
+    function applySpreadAlignment(book) {
+        // 先清掉上一輪補的頁，重新算
+        document.querySelectorAll('.spread-filler').forEach(el => el.remove());
+        const alignNav = document.getElementById('dynamic-align-nav');
+        if (alignNav) alignNav.innerHTML = '';
+
+        const container = document.querySelector('.book-pages');
+        if (!container || !book) return;
+        // 只有雙頁詳細版是「一張橫式 A4 對折成兩個 A5」的小冊子結構，
+        // 其他版型不是騎馬釘，對齊沒有意義。
+        if (book.template !== 'detailed' || !isSpreadAlign()) return;
+
+        const visible = () => [...container.querySelectorAll('.book-page')]
+            .filter(el => !el.classList.contains('page-excluded')
+                       && !el.classList.contains('impose-blank'));
+
+        let seq = 0;
+        const added = [];
+
+        // --- 1. 讓每日圖頁落在偶數頁 ---
+        const dayWrap = document.getElementById('dynamic-day-pages');
+        const firstDay = document.querySelector('.day-page-detailed-a:not(.page-excluded)');
+        if (firstDay && dayWrap) {
+            const pages = visible();
+            const idx = pages.indexOf(firstDay);          // 0-based
+            if (idx >= 0 && (idx + 1) % 2 === 1) {        // 落在奇數頁 → 補一頁
+                const f = makeFillerPage(++seq, '這一頁是為了讓每天的照片頁與行程頁並排而補上的，可以自由書寫。');
+                container.insertBefore(f, dayWrap);
+                added.push(f);
+            }
+        }
+
+        // --- 2. 封底前補到 4 的倍數 ---
+        const backWrap = document.getElementById('dynamic-backcover');
+        const anchor = backWrap || null;
+        let pad = (4 - (visible().length % 4)) % 4;
+        while (pad-- > 0) {
+            const f = makeFillerPage(++seq, '補到 4 的倍數，對折裝訂才不會錯位。可以自由書寫。');
+            if (anchor) container.insertBefore(f, anchor);
+            else container.appendChild(f);
+            added.push(f);
+        }
+
+        // 補頁也要能從側邊欄找到，不然在互動模式下根本點不到
+        if (alignNav) {
+            added.forEach((el) => {
+                const a = document.createElement('a');
+                a.href = `#${el.id}`;
+                a.className = 'nav-item';
+                a.setAttribute('data-page', el.id.replace(/^page-/, ''));
+                a.innerHTML = `<span class="day-badge info-badge">補</span><span>${el.dataset.tab}</span>`;
+                alignNav.appendChild(a);
+            });
+        }
+    }
+
+    const alignToggle = document.getElementById('chk-align-spreads');
+    if (alignToggle) {
+        alignToggle.checked = isSpreadAlign();
+        alignToggle.addEventListener('change', () => {
+            localStorage.setItem(ALIGN_KEY, alignToggle.checked ? '1' : '0');
+            renderCurrentHandbook();
+        });
+    }
+
+    const fillerSelect = document.getElementById('filler-kind-select');
+    if (fillerSelect) {
+        fillerSelect.value = getFillerKind();
+        fillerSelect.addEventListener('change', () => {
+            localStorage.setItem(FILLER_KEY, fillerSelect.value);
+            renderCurrentHandbook();
+        });
+    }
+
+    // ==========================================================================
+    // 16. 購物清單（要買的）
+    // ==========================================================================
+    // 獨立成頁，不再塞在每日行程裡的「今日推薦」。每一格是一張照片加品項，
+    // 照片直接從電腦或手機相簿選（手機上瀏覽器會跳出「拍照／照片圖庫」）。
+    // 一頁放不下就自動往後接頁，跟旅遊資訊頁一樣。
+
+    // 一頁幾格：照各版型的可用紙面算，印出來不會被裁掉。
+    const SHOPPING_LAYOUT = {
+        'compact':    { cols: 3, rows: 4 },   // A4 直式：3×4
+        'text-heavy': { cols: 3, rows: 4 },
+        'detailed':   { cols: 2, rows: 3 },   // A5 半張：2×3
+        'fourfold':   { cols: 1, rows: 3 },   // 74.25mm 窄欄：單欄 3 格
+    };
+
+    function getShoppingLayout() {
+        const tpl = (getCurrentHandbook() || {}).template || 'compact';
+        return SHOPPING_LAYOUT[tpl] || SHOPPING_LAYOUT.compact;
+    }
+
+    function shoppingPerPage() {
+        const l = getShoppingLayout();
+        return l.cols * l.rows;
+    }
+
+    function ensureShopping(book) {
+        if (!Array.isArray(book.shopping)) book.shopping = [];
+        return book.shopping;
+    }
+
+    // localStorage 只有幾 MB，原尺寸的手機照片一張就好幾 MB，直接存會爆掉。
+    // 先在 canvas 上縮到長邊 900px 再轉 JPEG，一張大約 60~120KB。
+    const PHOTO_MAX_EDGE = 900;
+    const PHOTO_QUALITY = 0.72;
+
+    function compressImageFile(file, cb) {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                let w = img.naturalWidth || img.width;
+                let h = img.naturalHeight || img.height;
+                const scale = Math.min(1, PHOTO_MAX_EDGE / Math.max(w, h));
+                w = Math.max(1, Math.round(w * scale));
+                h = Math.max(1, Math.round(h * scale));
+                const canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, w, h);
+                ctx.drawImage(img, 0, 0, w, h);
+                try {
+                    cb(canvas.toDataURL('image/jpeg', PHOTO_QUALITY));
+                } catch (err) {
+                    cb(reader.result); // 極少數情況退回原圖
+                }
+            };
+            img.onerror = () => alert('這個檔案讀不成圖片，換一張試試。');
+            img.src = reader.result;
+        };
+        reader.onerror = () => alert('讀取檔案失敗，請再試一次。');
+        reader.readAsDataURL(file);
+    }
+
+    // 共用一個隱藏的 <input type="file">：手機上點下去會出現
+    // 「拍照 / 照片圖庫 / 瀏覽檔案」，電腦上是一般的選檔視窗。
+    function pickPhoto(onPicked) {
+        const input = document.getElementById('photo-file-input');
+        if (!input) return;
+        input.value = '';
+        input.onchange = () => {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            compressImageFile(file, onPicked);
+        };
+        input.click();
+    }
+
+    function renderShoppingPages(book) {
+        const navBox = document.getElementById('dynamic-shopping-nav');
+        const pageBox = document.getElementById('dynamic-shopping-pages');
+        if (!pageBox) return;
+        if (navBox) navBox.innerHTML = '';
+        pageBox.innerHTML = '';
+
+        const items = ensureShopping(book);
+        if (!items.length) return;   // 沒東西就不產生這一頁，也不會印出空白頁
+
+        const { cols, rows } = getShoppingLayout();
+        const perPage = cols * rows;
+        const pageCount = Math.ceil(items.length / perPage);
+
+        for (let p = 0; p < pageCount; p++) {
+            const slice = items.slice(p * perPage, (p + 1) * perPage);
+            const pageId = `shop-${p + 1}`;
+            const sec = document.createElement('section');
+            sec.id = `page-${pageId}`;
+            sec.className = 'book-page shopping-page';
+            sec.setAttribute('data-tab', '購物清單');
+            sec.innerHTML = `
+                <div class="page-header-container">
+                    <h2 class="page-title">🛍️ 購物清單${pageCount > 1 ? ` <span class="info-page-no">(${p + 1}/${pageCount})</span>` : ''}</h2>
+                    <p class="page-description">想買的先拍下來，逛街時照著找，買到就打勾。</p>
+                </div>
+                <div class="shopping-grid" data-columns="${cols}">
+                    ${slice.map((it, i) => {
+                        const idx = p * perPage + i;
+                        return `
+                        <figure class="shop-card${it.bought ? ' is-bought' : ''}" data-shop-index="${idx}">
+                            <div class="shop-photo${it.img ? ' has-img' : ''}" data-shop-index="${idx}"${
+                                it.img ? ` style="background-image:url('${it.img}')"` : ''}>
+                                ${it.img ? '' : '<span class="shop-photo-hint">＋ 加照片</span>'}
+                            </div>
+                            <figcaption class="shop-body">
+                                <div class="shop-row">
+                                    <button type="button" class="shop-check no-print" data-shop-index="${idx}" title="買到了就打勾">${it.bought ? '☑' : '☐'}</button>
+                                    <span class="shop-box" aria-hidden="true"></span>
+                                    <span class="shop-name shop-edit" contenteditable="true" spellcheck="false"
+                                          data-shop-path="${idx}.name">${escapeHtml(it.name || '')}</span>
+                                </div>
+                                <span class="shop-note shop-edit" contenteditable="true" spellcheck="false"
+                                      data-shop-path="${idx}.note">${escapeHtml(it.note || '')}</span>
+                                <div class="shop-foot">
+                                    <span class="shop-price shop-edit" contenteditable="true" spellcheck="false"
+                                          data-shop-path="${idx}.price">${escapeHtml(it.price || '')}</span>
+                                </div>
+                            </figcaption>
+                            <button type="button" class="shop-del no-print" data-shop-index="${idx}" title="刪除這格">×</button>
+                        </figure>`;
+                    }).join('')}
+                </div>`;
+            pageBox.appendChild(sec);
+
+            if (navBox) {
+                const a = document.createElement('a');
+                a.href = `#page-${pageId}`;
+                a.className = 'nav-item';
+                a.setAttribute('data-page', pageId);
+                a.innerHTML = `<span class="day-badge info-badge">🛍</span><span>購物清單${pageCount > 1 ? ` ${p + 1}` : ''}</span>`;
+                navBox.appendChild(a);
+            }
+        }
+    }
+
+    // 互動模式下把某一頁叫到畫面上（新增或換圖之後停在原地看得到結果）
+    function activateShoppingPage(pageId) {
+        if (document.body.classList.contains('booklet-preview')) return;
+        const nav = document.querySelector(`.sidebar-menu .nav-item[data-page="${pageId}"]`);
+        if (nav) nav.click();
+    }
+
+    // --- 轉乘段與使用票券：可新增可刪除 ---
+    // 這幾個動作都會改到每日行程頁的結構，重繪後要用 renderCurrentHandbook
+    // 走完整套（含回到原本那一頁、重編頁碼、重算拼版）。
+    document.addEventListener('click', (e) => {
+        const t = e.target;
+        if (!t || !t.closest) return;
+        const hit = t.closest('.transit-add, .transit-del, .ticket-add, .ticket-del');
+        if (!hit) return;
+        e.preventDefault();
+        const book = getCurrentHandbook();
+        if (!book) return;
+
+        const di = parseInt(hit.dataset.dayIndex, 10);
+        const day = (book.days || [])[di];
+        if (!day) return;
+
+        if (hit.classList.contains('transit-add') || hit.classList.contains('transit-del')) {
+            const stop = (day.timeline || [])[parseInt(hit.dataset.stopIndex, 10)];
+            if (!stop) return;
+            if (!Array.isArray(stop.transit)) stop.transit = [];
+            if (hit.classList.contains('transit-add')) {
+                stop.transit.push({
+                    line: '路線名（往哪個方向）',
+                    from: '起站', fromTime: '--:--', to: '迄站', toTime: '--:--',
+                });
+            } else {
+                stop.transit.splice(parseInt(hit.dataset.legIndex, 10), 1);
+            }
+        } else {
+            if (!Array.isArray(day.tickets)) day.tickets = [];
+            if (hit.classList.contains('ticket-add')) {
+                day.tickets.push('票券名稱／使用日');
+            } else {
+                day.tickets.splice(parseInt(hit.dataset.ticketIndex, 10), 1);
+            }
+        }
+        saveAllData();
+        renderCurrentHandbook();
+    });
+
+    // --- 出國宣誓：每一條可刪、可新增 ---
+    document.addEventListener('click', (e) => {
+        const t = e.target;
+        if (!t || !t.closest) return;
+        const add = t.closest('.oath-add');
+        const del = t.closest('.oath-del');
+        if (!add && !del) return;
+        e.preventDefault();
+        const book = getCurrentHandbook();
+        if (!book) return;
+        const ip = ensureInfoPages(book);
+        if (!Array.isArray(ip.oath)) ip.oath = [];
+        if (add) {
+            ip.oath.push('在這裡寫下這趟旅程想守住的約定。');
+        } else {
+            ip.oath.splice(parseInt(del.dataset.oathIndex, 10), 1);
+        }
+        saveAllData();
+        renderInfoPages(book);
+        bindDynamicNavEvents();
+        restoreActivePage((document.querySelector('.book-page.active') || {}).id || null);
+        applyExcluded(book);
+        renderPageToggles(book);
+        numberPages();
+        if (typeof applyImposition === 'function') applyImposition();
+    });
+
+    // --- 購物清單的互動：加照片、打勾、刪除、新增 ---
+    document.addEventListener('click', (e) => {
+        const book = getCurrentHandbook();
+        if (!book) return;
+        const t = e.target;
+        if (!t || !t.closest) return;
+
+        const photo = t.closest('.shop-photo');
+        if (photo) {
+            const idx = parseInt(photo.dataset.shopIndex, 10);
+            pickPhoto((dataUrl) => {
+                const items = ensureShopping(book);
+                if (!items[idx]) return;
+                const prev = items[idx].img || '';
+                items[idx].img = dataUrl;
+                if (!saveAllData()) { items[idx].img = prev; return; }
+                renderCurrentHandbook();
+                setTimeout(() => activateShoppingPage(`shop-${Math.floor(idx / shoppingPerPage()) + 1}`), 60);
+            });
+            return;
+        }
+
+        const chk = t.closest('.shop-check');
+        if (chk) {
+            const idx = parseInt(chk.dataset.shopIndex, 10);
+            const items = ensureShopping(book);
+            if (!items[idx]) return;
+            items[idx].bought = !items[idx].bought;
+            saveAllData();
+            chk.textContent = items[idx].bought ? '☑' : '☐';
+            const card = chk.closest('.shop-card');
+            if (card) card.classList.toggle('is-bought', !!items[idx].bought);
+            return;
+        }
+
+        const del = t.closest('.shop-del');
+        if (del) {
+            const idx = parseInt(del.dataset.shopIndex, 10);
+            ensureShopping(book).splice(idx, 1);
+            saveAllData();
+            renderCurrentHandbook();
+            return;
+        }
+
+        if (t.id === 'btn-add-shopping') {
+            const items = ensureShopping(book);
+            items.push({ img: '', name: '品項名稱', note: '店家 / 備註', price: '', bought: false });
+            saveAllData();
+            renderCurrentHandbook();
+            setTimeout(() => activateShoppingPage(`shop-${Math.ceil(items.length / shoppingPerPage())}`), 60);
+        }
+    });
+
+    // 文字欄位：離開焦點就存
+    document.addEventListener('focusout', (e) => {
+        const el = e.target;
+        if (!el || !el.dataset || !el.dataset.shopPath) return;
+        const book = getCurrentHandbook();
+        if (!book) return;
+        const parts = el.dataset.shopPath.split('.');
+        const it = ensureShopping(book)[parseInt(parts[0], 10)];
+        if (!it) return;
+        const value = el.textContent.replace(/\s+$/, '');
+        if (it[parts[1]] === value) return;
+        it[parts[1]] = value;
+        saveAllData();
+    });
+
     // ==========================================================================
     // 11. 系統初始化 (System Boot)
     // ==========================================================================
     applyStyle(getActiveStyle());
+    applySkeleton(getActiveSkeleton());
     initData();
     renderHandbookSwitcher();
     renderCurrentHandbook();

@@ -54,8 +54,20 @@
 
     // 線上模式：註冊離線快取，並先擋住 app.js，等驗證通過再放行。
     if ('serviceWorker' in navigator) {
+        // 開頁當下有沒有舊的 Service Worker 在管事。有的話，等新版接手之後
+        // 重新載入一次，否則畫面上跑的還是舊的 app.js／styles.css ——
+        // 也就是「明明改好了，手機上看起來卻沒變」的成因。
+        var hadController = !!navigator.serviceWorker.controller;
+        var reloading = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+            if (!hadController || reloading) return;   // 第一次安裝不需要重載
+            reloading = true;
+            location.reload();
+        });
         window.addEventListener('load', function () {
-            navigator.serviceWorker.register('sw.js').catch(function () { });
+            navigator.serviceWorker.register('sw.js').then(function (reg) {
+                if (reg && typeof reg.update === 'function') reg.update();
+            }).catch(function () { });
         });
     }
     window.__TRAVEL_GATE = true;

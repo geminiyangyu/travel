@@ -9,7 +9,7 @@
  *       重新上傳即可強制更新。
  * ========================================================================== */
 
-var CACHE_VERSION = 'travel-v1';
+var CACHE_VERSION = 'travel-v2';
 var SHELL = [
     './',
     './index.html',
@@ -79,7 +79,33 @@ self.addEventListener('fetch', function (event) {
         return;
     }
 
-    // 3) 網頁本體與字型：先給快取讓它秒開，同時在背景偷偷更新
+    // 3) 程式碼本體（index.html / styles.css / app.js / auth.js）：改用「先連網、
+    //    連不到才用快取」。
+    //
+    //    原本這裡跟字型一樣是 cache-first + 背景更新，代價是每次改版後使用者
+    //    至少要重新載入兩次才看得到新版：第一次拿到的是舊快取，新版只是被存
+    //    起來等下一次。手機上如果中間沒有再開一次，就會一直停在舊版 ——
+    //    「明明修好了卻還是壞的」多半是這個原因，而不是修正本身沒效。
+    //    手冊的程式碼只有幾百 KB，有網路時多等這一下換到「改了就看得到」很划算；
+    //    沒網路時照樣從快取開，離線能力完全不受影響。
+    if (sameOrigin && /(^\/$|\.html$|\.css$|\.js$|\.webmanifest$)/.test(path)) {
+        event.respondWith(
+            fetch(req).then(function (res) {
+                if (res && res.ok) {
+                    var copy = res.clone();
+                    caches.open(CACHE_VERSION).then(function (c) { c.put(req, copy); });
+                }
+                return res;
+            }).catch(function () {
+                return caches.match(req).then(function (hit) {
+                    return hit || caches.match('./index.html');
+                });
+            })
+        );
+        return;
+    }
+
+    // 4) 字型等其他同源資源：先給快取讓它秒開，同時在背景偷偷更新
     if (sameOrigin || /fonts\.(googleapis|gstatic)\.com/.test(url.hostname)) {
         event.respondWith(
             caches.match(req).then(function (hit) {
