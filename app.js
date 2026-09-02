@@ -108,7 +108,7 @@ function __travelAppMain() {
             localStorage.setItem('active_handbook_id', currentHandbookId);
             return true;
         } catch (err) {
-            alert('儲存空間已滿，這張照片沒有存進去。\n\n請先刪掉幾張購物清單的照片，或用「匯出加密行程檔」備份後再繼續。');
+            alert('儲存空間已滿，這張照片沒有存進去。\n\n請先按上方的「💾 備份成檔案」留一份，再刪掉幾張用不到的照片。');
             return false;
         }
     }
@@ -3289,6 +3289,170 @@ function __travelAppMain() {
         if (typeof applyImposition === 'function') applyImposition();
         tagSheetBreaks();
     });
+
+    // ==========================================================================
+    // 備份與還原：把資料弄出這台瀏覽器
+    // ==========================================================================
+    // 整份資料（文字、設定、所有照片）目前只活在單一瀏覽器的 localStorage 裡。
+    // 沒有第二份、沒有雲端、沒有檔案。清一次瀏覽器資料、換一台電腦、或 Safari
+    // 自動回收久沒開的站台資料，全部歸零 —— 而且是無聲的。
+    //
+    // 這是整個 app 唯一的出口，所以做成「一顆按鈕存成檔案、一顆讀回來」，
+    // 不加密、不壓縮、就是純 JSON：五年後沒有這個 app 也還打得開。
+    //
+    // 註：儲存空間存滿時那句 alert 以前寫著「請用匯出加密行程檔備份」——
+    // 那個功能從來不存在。現在訊息指向的是這裡真的有的按鈕。
+    const BACKUP_VERSION = 1;
+    const BACKUP_SETTINGS = [
+        'travel_style', 'travel_skeleton', 'travel_imposition', 'travel_write_space',
+        'travel_paper_texture', 'travel_print_plain', 'travel_align_spreads',
+        'travel_filler_kind',
+    ];
+
+    function buildBackup() {
+        const settings = {};
+        BACKUP_SETTINGS.forEach(k => {
+            const v = localStorage.getItem(k);
+            if (v != null) settings[k] = v;
+        });
+        return {
+            format: 'travel-handbook-backup',
+            version: BACKUP_VERSION,
+            exportedAt: new Date().toISOString(),
+            activeHandbookId: localStorage.getItem('active_handbook_id') || null,
+            settings,
+            handbooks: handbooks,
+        };
+    }
+
+    function downloadBackup() {
+        const data = buildBackup();
+        const text = JSON.stringify(data, null, 2);
+        const d = new Date();
+        const p2 = n => String(n).padStart(2, '0');
+        // 檔名一律用 ASCII。實測：<a download> 的檔名只要含中文，Chromium 會
+        // 整個丟掉、存成沒有副檔名的 "download" —— 那既認不出是哪份備份，
+        // macOS 也不知道要用什麼開。手冊名稱本來就在檔案內容裡，不必放檔名。
+        // 改用日期＋時間當區分：同一天備好幾次也分得出先後。
+        const stamp = `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}`;
+        const blob = new Blob([text], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `travel-handbook-backup-${stamp}.json`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        // 立刻把 <a> 移掉、或立刻 revoke，部分瀏覽器會來不及接手，
+        // 結果檔名變成 "download"、甚至整個下載中斷。都延後處理。
+        setTimeout(() => {
+            a.remove();
+            URL.revokeObjectURL(url);
+        }, 4000);
+
+        const mb = (text.length / 1024 / 1024).toFixed(1);
+        return { books: handbooks.length, mb, names: handbooks.map(h => h.title || '未命名').join('、') };
+    }
+
+    // 匯入的手冊一律換新 id：跟現有的撞 id 會讓「選擇手冊」下拉出現兩個一樣的
+    // 選項，切過去還會切錯本。換 id 是最不會出事的作法。
+    function reidHandbook(book, suffix) {
+        const copy = JSON.parse(JSON.stringify(book));
+        copy.id = 'hb_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+        if (suffix) copy.title = `${copy.title || '旅行手冊'}${suffix}`;
+        return copy;
+    }
+
+    function applyBackup(data, mode) {
+        if (!data || data.format !== 'travel-handbook-backup' || !Array.isArray(data.handbooks)) {
+            alert('這個檔案看起來不是這個 app 的備份檔。\n\n備份檔的開頭應該有 "format": "travel-handbook-backup"。');
+            return false;
+        }
+        if (!data.handbooks.length) {
+            alert('這份備份檔裡沒有任何手冊。');
+            return false;
+        }
+
+        if (mode === 'replace') {
+            handbooks = data.handbooks;
+            currentHandbookId = data.activeHandbookId && handbooks.some(h => h.id === data.activeHandbookId)
+                ? data.activeHandbookId : handbooks[0].id;
+            // 只有「全部取代」才一併還原設定 —— 合併時偷偷改掉風格會很意外
+            if (data.settings) {
+                Object.entries(data.settings).forEach(([k, v]) => {
+                    if (BACKUP_SETTINGS.includes(k)) localStorage.setItem(k, v);
+                });
+            }
+        } else {
+            const stamp = data.exportedAt ? `（${data.exportedAt.slice(0, 10)} 還原）` : '（還原）';
+            const added = data.handbooks.map(b => reidHandbook(b, stamp));
+            handbooks = handbooks.concat(added);
+            currentHandbookId = added[0].id;
+        }
+
+        if (!saveAllData()) {
+            alert('還原失敗：瀏覽器的儲存空間不夠放下這份備份。\n\n請先刪掉幾本用不到的手冊再試一次。');
+            return false;
+        }
+        // 設定可能變了（取代模式），整頁重載最乾淨，也避免半套狀態
+        location.reload();
+        return true;
+    }
+
+    const btnExport = document.getElementById('btn-export-backup');
+    if (btnExport) {
+        btnExport.addEventListener('click', () => {
+            if (!handbooks.length) { alert('目前沒有任何手冊可以備份。'); return; }
+            const r = downloadBackup();
+            // alert() 會鎖住主執行緒。緊接在 a.click() 之後跳的話，瀏覽器來不及
+            // 讀到 <a download> 上的檔名，存下來會變成沒有副檔名的 "download"。
+            // 讓下載先起跑，再說明。
+            setTimeout(() => {
+                alert(`已下載備份檔：${r.books} 本手冊（${r.names}），約 ${r.mb} MB。\n\n` +
+                      `這個檔案是純文字 JSON，裡面含照片，請放到 iCloud／Google Drive 之類會自動同步的地方。\n` +
+                      `清瀏覽器資料、換電腦之後，用「📂 從備份還原」讀回來就好。`);
+            }, 400);
+        });
+    }
+
+    const btnImport = document.getElementById('btn-import-backup');
+    const backupInput = document.getElementById('backup-file-input');
+    if (btnImport && backupInput) {
+        btnImport.addEventListener('click', () => {
+            backupInput.value = '';       // 選同一個檔案兩次也要能觸發 change
+            backupInput.click();
+        });
+        backupInput.addEventListener('change', () => {
+            const file = backupInput.files && backupInput.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                let data;
+                try {
+                    data = JSON.parse(reader.result);
+                } catch (err) {
+                    alert('這個檔案不是有效的 JSON，讀不進來。');
+                    return;
+                }
+                const n = Array.isArray(data.handbooks) ? data.handbooks.length : 0;
+                const when = data.exportedAt ? data.exportedAt.slice(0, 10) : '未知日期';
+                // 預設走「加進來」：它不會毀掉任何現有資料。
+                // 要取代必須再確認一次，而且明說會刪掉幾本。
+                const merge = confirm(
+                    `備份檔：${n} 本手冊，備份於 ${when}\n\n` +
+                    `【確定】加進來 —— 現有的 ${handbooks.length} 本一本都不動\n` +
+                    `【取消】改成全部取代`
+                );
+                if (merge) { applyBackup(data, 'merge'); return; }
+                const ok = confirm(
+                    `全部取代會刪掉目前的 ${handbooks.length} 本手冊，而且無法復原。\n\n` +
+                    `確定要繼續嗎？（建議先按「💾 備份成檔案」留一份再取代）`
+                );
+                if (ok) applyBackup(data, 'replace');
+            };
+            reader.readAsText(file);
+        });
+    }
 
     // --- 保留手寫空間 ---
     const WRITE_KEY = 'travel_write_space';

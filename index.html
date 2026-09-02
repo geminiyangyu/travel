@@ -142,6 +142,10 @@
                 <button id="btn-add-handbook" class="action-btn" title="新增空白手冊">➕ 新增</button>
                 <button id="btn-edit-handbook" class="action-btn" title="編輯目前行程內容">✏️ 編輯內容</button>
                 <button id="btn-delete-handbook" class="action-btn danger" title="刪除目前手冊">🗑️ 刪除</button>
+
+                <button id="btn-export-backup" class="action-btn" title="把所有手冊與設定存成一個檔案下載。整份資料目前只存在這台瀏覽器裡，清一次瀏覽器資料就會全部消失 —— 這是唯一的備份方式。">💾 備份成檔案</button>
+                <button id="btn-import-backup" class="action-btn" title="從備份檔還原。可以選擇「加進來」（現有的手冊都不動）或「全部取代」。">📂 從備份還原</button>
+                <input type="file" id="backup-file-input" accept="application/json,.json" class="no-print" style="display:none">
                 
                 <span class="nav-separator">|</span>
                 
