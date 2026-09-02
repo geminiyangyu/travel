@@ -9,7 +9,7 @@
  *       重新上傳即可強制更新。
  * ========================================================================== */
 
-var CACHE_VERSION = 'travel-v2';
+var CACHE_VERSION = 'travel-v3';
 var SHELL = [
     './',
     './index.html',

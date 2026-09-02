@@ -76,9 +76,9 @@
         var session = readSession();
         var cached = localStorage.getItem(HANDBOOKS_KEY);
 
-        if (session && session.user && cached) {
-            // 這台裝置已經登入過，而且行程還在本機快取裡 → 直接進去（可離線）。
-            startApp(session.user);
+        if (session && cached && (session.user || session.source === 'file')) {
+            // 這台裝置已經登入（或載入過檔案），行程還在本機快取裡 → 直接進去（可離線）。
+            startApp(session);
             return;
         }
         showLogin();
@@ -102,6 +102,11 @@
             '  <input id="tv-pass" name="password" type="password" autocomplete="current-password" required>' +
             '  <button type="submit" class="tv-gate-btn">開啟手冊</button>' +
             '  <p class="tv-gate-msg" role="alert"></p>' +
+            '  <div class="tv-gate-or"><span>或</span></div>' +
+            '  <button type="button" class="tv-gate-file">📂 從檔案載入行程</button>' +
+            '  <p class="tv-gate-hint">選擇手機或電腦上的行程檔（.json）。' +
+            '     資料只會存在這台裝置的瀏覽器裡，不會上傳到任何地方。</p>' +
+            '  <input type="file" class="tv-gate-fileinput" accept=".json,application/json" hidden>' +
             '</form>';
         document.body.appendChild(overlay);
         document.body.classList.add('tv-gate-open');
@@ -127,10 +132,10 @@
             loadHandbook(user, pass).then(function (books) {
                 localStorage.setItem(HANDBOOKS_KEY, JSON.stringify(books));
                 localStorage.setItem(ACTIVE_KEY, books[0] && books[0].id ? books[0].id : '');
-                writeSession(user);
+                writeSession({ user: user });
                 overlay.remove();
                 document.body.classList.remove('tv-gate-open');
-                startApp(user);
+                startApp({ user: user });
                 prefetchOffline(books);
             }).catch(function (err) {
                 btn.disabled = false;
@@ -140,7 +145,126 @@
             });
         });
 
+        // --- 從檔案載入 ---
+        var fileBtn = overlay.querySelector('.tv-gate-file');
+        var fileInput = overlay.querySelector('.tv-gate-fileinput');
+
+        fileBtn.addEventListener('click', function () {
+            msg.textContent = '';
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function () {
+            var file = fileInput.files && fileInput.files[0];
+            if (!file) return;
+
+            fileBtn.disabled = true;
+            fileBtn.textContent = '讀取中…';
+            msg.textContent = '';
+
+            readFileAsText(file).then(function (text) {
+                return booksFromText(text, file.name);
+            }).then(function (books) {
+                localStorage.setItem(HANDBOOKS_KEY, JSON.stringify(books));
+                localStorage.setItem(ACTIVE_KEY, books[0].id);
+                writeSession({ source: 'file', name: file.name });
+                overlay.remove();
+                document.body.classList.remove('tv-gate-open');
+                startApp({ source: 'file', name: file.name });
+                prefetchOffline(books);
+            }).catch(function (err) {
+                fileBtn.disabled = false;
+                fileBtn.textContent = '📂 從檔案載入行程';
+                fileInput.value = '';
+                msg.textContent = err && err.message ? err.message : '這個檔案讀不出行程資料';
+            });
+        });
+
         setTimeout(function () { (prefillUser ? passEl : userEl).focus(); }, 60);
+    }
+
+    // --- 讀檔與解析 ---------------------------------------------------------
+    // 支援兩種檔案：
+    //   (a) 本 App「🔒 匯出加密行程檔」產生的加密檔 → 會再問一次密碼
+    //   (b) 未加密的原始行程 JSON（例如 Gemini 生成的）→ 直接載入
+    function readFileAsText(file) {
+        return new Promise(function (resolve, reject) {
+            if (file.size > 20 * 1024 * 1024) {
+                reject(new Error('檔案太大了（超過 20MB），請確認選到的是行程檔'));
+                return;
+            }
+            var reader = new FileReader();
+            reader.onload = function () { resolve(String(reader.result || '')); };
+            reader.onerror = function () { reject(new Error('讀取檔案失敗，請再試一次')); };
+            reader.readAsText(file, 'utf-8');
+        });
+    }
+
+    function booksFromText(text, filename) {
+        var data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            throw new Error('這不是有效的 JSON 檔案');
+        }
+
+        // (a) 加密檔
+        if (data && data.v === 1 && data.salt && data.iv && data.ct) {
+            var pass = prompt('「' + filename + '」是加密過的行程檔。\n請輸入它的密碼：');
+            if (!pass) throw new Error('已取消');
+            return decryptPayload(data, pass).catch(function () {
+                // decryptPayload 的錯誤訊息是為登入畫面寫的（「帳號或密碼錯誤」），
+                // 但這條路徑沒有帳號可言，換成貼合情境的說法。
+                throw new Error('密碼不對，這個檔案打不開');
+            }).then(function (plain) {
+                var inner;
+                try { inner = JSON.parse(plain); }
+                catch (e) { throw new Error('解開後的內容格式不正確'); }
+                return normalizeBooks(inner);
+            });
+        }
+
+        // (b) 未加密的原始行程
+        return Promise.resolve(normalizeBooks(data));
+    }
+
+    // 把外來的 JSON 補齊成 App 需要的結構，避免缺欄位造成畫面壞掉。
+    function normalizeBooks(data) {
+        var books = Array.isArray(data) ? data : [data];
+        books = books.filter(function (b) { return b && typeof b === 'object' && !Array.isArray(b); });
+        if (!books.length) throw new Error('這個檔案裡找不到行程資料');
+
+        books.forEach(function (b, i) {
+            if (!b.id) b.id = 'imported-' + Date.now() + '-' + i;
+            if (!b.title) b.title = '匯入的行程 ' + (i + 1);
+            if (typeof b.subtitle !== 'string') b.subtitle = '';
+            if (typeof b.dates !== 'string') b.dates = '';
+            if (typeof b.flightInfo !== 'string') b.flightInfo = '';
+            if (typeof b.countdownDate !== 'string') b.countdownDate = '';
+            if (typeof b.badgeText !== 'string') b.badgeText = 'TRAVEL';
+            if (!b.mascot) b.mascot = 'dog';
+            if (!b.template) b.template = 'compact';
+            if (!b.flights) {
+                b.flights = {
+                    depTime: '', depArrTime: '', depAirport: '', depAirline: '', depFlight: '',
+                    retTime: '', retArrTime: '', retAirport: '', retAirline: '', retFlight: ''
+                };
+            }
+            if (!Array.isArray(b.hotels)) b.hotels = [];
+            if (!Array.isArray(b.packing)) b.packing = [];
+            if (!Array.isArray(b.customPages)) b.customPages = [];
+            if (!b.cards || typeof b.cards !== 'object') b.cards = {};
+            if (!Array.isArray(b.cards.card1Perks)) b.cards.card1Perks = [];
+            if (!Array.isArray(b.cards.card2Perks)) b.cards.card2Perks = [];
+            if (!Array.isArray(b.days)) b.days = [];
+            b.days.forEach(function (d) {
+                if (!d || typeof d !== 'object') return;
+                if (!Array.isArray(d.transport)) d.transport = [];
+                if (!Array.isArray(d.tips)) d.tips = [];
+                if (!Array.isArray(d.timeline)) d.timeline = [];
+            });
+        });
+        return books;
     }
 
     // --- 抓取並解密行程檔 -----------------------------------------------------
@@ -207,11 +331,11 @@
     }
 
     // --- 啟動 App，並補上登出／重新下載按鈕 ------------------------------------
-    function startApp(user) {
+    function startApp(session) {
         if (typeof window.__travelAppMain === 'function') {
             window.__travelAppMain();
         }
-        installSessionBar(user);
+        installSessionBar(session);
         // 匯出功能只在電腦本機（file://）出現，手機線上版不需要，避免介面雜亂。
     }
 
@@ -241,9 +365,11 @@
         })();
     }
 
-    function installSessionBar(user) {
+    function installSessionBar(session) {
         var manager = document.querySelector('.handbook-manager');
         if (!manager || document.getElementById('tv-logout')) return;
+
+        var user = session && session.user;
 
         var sep = document.createElement('span');
         sep.className = 'nav-separator';
@@ -283,7 +409,7 @@
         });
 
         manager.appendChild(sep);
-        manager.appendChild(refresh);
+        if (user) manager.appendChild(refresh);
         manager.appendChild(logout);
     }
 
@@ -416,7 +542,13 @@
             '.tv-gate-btn{width:100%;font-size:16px;font-weight:700;padding:13px;border:0;border-radius:10px;' +
             'background:#1f2933;color:#fff;cursor:pointer;margin-top:4px;-webkit-appearance:none}' +
             '.tv-gate-btn:disabled{opacity:.6;cursor:default}' +
-            '.tv-gate-msg{min-height:18px;margin:12px 0 0;font-size:13px;text-align:center;color:#c0392b}';
+            '.tv-gate-msg{min-height:18px;margin:12px 0 0;font-size:13px;text-align:center;color:#c0392b}' +
+            '.tv-gate-or{display:flex;align-items:center;gap:10px;margin:18px 0 14px;color:#9aa5b1;font-size:12px}' +
+            '.tv-gate-or::before,.tv-gate-or::after{content:"";flex:1;height:1px;background:#e4e9ee}' +
+            '.tv-gate-file{width:100%;font-size:15px;font-weight:600;padding:11px;border:1.5px solid #d8dee6;' +
+            'border-radius:10px;background:#fff;color:#1f2933;cursor:pointer;-webkit-appearance:none}' +
+            '.tv-gate-file:disabled{opacity:.6;cursor:default}' +
+            '.tv-gate-hint{margin:10px 2px 0;font-size:11.5px;line-height:1.6;color:#9aa5b1;text-align:center}';
         var el = document.createElement('style');
         el.id = 'tv-gate-style';
         el.textContent = css;
