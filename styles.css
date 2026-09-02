@@ -2298,12 +2298,17 @@ body.template-detailed.booklet-preview #page-packing {
     padding: 10mm 15mm !important;
 }
 
+/* 這兩條原本用「a 頁右邊一條虛線 + b 頁右邊留 40px」來分隔每一天，
+   但那是在「每一天自己一組」的假設下寫的。現在框線統一由「一張紙一個框」
+   那一區負責（左右半邊共用外框、中間一條摺線），這裡再加自己的分隔線與
+   40px 邊距就會變成有的地方併、有的地方不併 —— 也就是看起來忽大忽小的原因。
+   分隔改由紙與紙之間的垂直間距表達。 */
 body.template-detailed.booklet-preview .day-page-detailed-a {
-    border-right: 1px dashed #CCCCCC !important;
+    border-right: none !important;
 }
 
 body.template-detailed.booklet-preview .day-page-detailed-b {
-    margin-right: 40px !important; /* Visual page separation */
+    margin-right: 0 !important;
 }
 
 /* Interactive webpage view (not booklet-preview, not print): clicking a day
@@ -2448,8 +2453,17 @@ body.template-detailed:not(.booklet-preview) .day-page-detailed-b.active {
            shorter boxes (e.g. the packing categories, the Uniopen card box). */
         align-items: start !important;
         width: 297mm !important; /* Full width landscape sheet */
-        page-break-before: always !important;
-        page-break-after: always !important;
+        /* 這兩頁以前是「整張橫式 A4」，所以前後各強制斷一次紙。
+           現在 splitWideSheets() 會把它們拆成兩個一般的 A5 頁，斷紙節奏
+           一律交給 .sheet-break（每兩頁一張紙）。留著這兩行的話，
+           Safari／WebKit 會照做，於是這裡多斷一次、那裡多斷一次，
+           印出來就出現「半張紙空白」和「整張紙全白」。
+           （Chromium 對 float 元素會忽略強制斷頁，所以之前用無頭
+             Chromium 產 PDF 看不出來 —— 使用者用的是 Safari。） */
+        page-break-before: auto !important;
+        page-break-after: avoid !important;
+        break-before: auto !important;
+        break-after: avoid !important;
         padding: 10mm 15mm !important;
     }
 
@@ -2523,8 +2537,14 @@ body.template-detailed:not(.booklet-preview) .day-page-detailed-b.active {
         border-right: 1px dashed #CCCCCC !important;
     }
 
+    /* 每日文頁以前固定「印完就換紙」，那是還沒有跨頁對齊之前的做法。
+       現在文頁不一定落在紙的右半 —— 跨頁對齊開啟時它反而多半在左半 ——
+       這行就會在一張紙的正中間硬斷開，右半留白。
+       （使用者印出來看到「景點簡介在左邊、右邊整片空白」就是這一行。）
+       斷紙統一由 .sheet-break 決定。 */
     body.template-detailed .day-page-detailed-b {
-        page-break-after: always !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
     }
 }
 
@@ -3364,9 +3384,13 @@ body.template-fourfold.booklet-preview .day-timeline {
         overflow: hidden !important;
     }
     
-    /* Alternating page break rule to keep A5 panels pairs aligned on A4 landscape sheets */
-    body.template-detailed #dynamic-custom-pages .book-page:nth-child(even) {
-        page-break-after: always !important;
+    /* 這裡原本用 :nth-child(even) 每兩頁斷一次紙。問題是 nth-child 只在
+       自己的父層裡數，而 .book-page 分散在好幾個 wrapper 裡，每換一個
+       wrapper 就從 1 重數，全域的兩頁節奏會斷掉。改由 .sheet-break 統一
+       負責（見檔案最後的「每兩個 A5 頁強制換一張紙」）。 */
+    body.template-detailed #dynamic-custom-pages .book-page {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
     }
 
     .notes-photo-placeholder {
@@ -3402,7 +3426,7 @@ body.template-compact .day-layout {
     grid-template-areas:
         "header     header"
         "image      transport"
-        "tips       timeline"
+        "image      timeline"
         "gallery    gallery"
         "meals      meals" !important;
     gap: 8px 18px !important;
@@ -3431,10 +3455,10 @@ body.template-compact .day-hero-image .day-art {
     object-fit: cover !important;
 }
 
-/* .day-sidebar has 1-2 .info-card children: the plain one is 今日交通與說明,
-   the one with the extra .warning class is 漫遊小貼士. */
-body.template-compact .day-top-grid .info-card:not(.warning) { grid-area: transport !important; }
-body.template-compact .day-top-grid .info-card.warning { grid-area: tips !important; }
+/* .day-sidebar 現在只剩一張 .info-card（今日交通與說明）。
+   原本第二張是「漫遊小貼士」，因為排在側欄最後、內容一長就會被頁緣切掉，
+   已經整個移除；空出來的格子讓照片往下長，單頁版的主圖因此變成整條左欄。 */
+body.template-compact .day-top-grid .info-card { grid-area: transport !important; }
 
 body.template-compact .day-timeline {
     grid-area: timeline !important;
@@ -3454,7 +3478,6 @@ body.template-compact .day-timeline {
             "header"
             "image"
             "transport"
-            "tips"
             "timeline"
             "gallery"
             "meals" !important;
@@ -3481,7 +3504,7 @@ body.template-compact .day-timeline {
         grid-template-areas:
             "header     header"
             "image      transport"
-            "tips       timeline"
+            "image      timeline"
             "gallery    gallery"
             "meals      meals" !important;
         gap: 6mm 6mm !important;
@@ -3504,8 +3527,7 @@ body.template-compact .day-timeline {
         max-height: none !important;
         object-fit: cover !important;
     }
-    body.template-compact .day-top-grid .info-card:not(.warning) { grid-area: transport !important; }
-    body.template-compact .day-top-grid .info-card.warning { grid-area: tips !important; }
+    body.template-compact .day-top-grid .info-card { grid-area: transport !important; }
     body.template-compact .day-timeline {
         grid-area: timeline !important;
         padding-left: 0 !important;
@@ -3534,33 +3556,42 @@ body.template-compact.booklet-preview .day-layout {
    -------------------------------------------------------------------------- */
 /* 等同 :root 預設值，這裡明寫一份讓切換回來時一定回得去。 */
 body.style-washi {
-    --paper-base: #F7F3EC;
-    --bg-screen: #F6F2EB;
-    --primary: #C85A32;
-    --primary-light: #FCEFE9;
+    /* 和紙 ＋ 剪貼合併後的單一暖色風格。
+       這兩個原本量出來有 6/12 項結構指標一模一樣（同字體、同標題字重、
+       色相環同一區的紅棕、都是米白紙、都沒陰影），差別只剩 6px 圓角，
+       印在紙上幾乎分不出來。合併後各取所長：
+         · 紙色與主色取兩者中間值
+         · 卡片底改用剪貼的半透明（內容像直接寫在紙上，盒子不要太實）
+         · 圓角 8px（和紙 12 太圓、剪貼 6 太方）
+         · 保留和紙的墨青副色（跟橘主色互補，剪貼的褐副色對比不夠） */
+    --paper-base: #F7F2E8;
+    --bg-screen: #F4EFE4;
+    --primary: #C56A38;
+    --primary-light: #F9EDE4;
     --secondary: #2B4C59;
     --secondary-light: #EBF1F3;
     --accent: #DFAB4E;
-    --text-main: #1C1C1C;
-    --text-muted: #5E5E5E;
-    --border-color: #E2DDD5;
+    --text-main: #24211D;
+    --text-muted: #635B51;
+    --border-color: #DED6C6;
     --font-kai: "BiauKai", "DFKai-SB", "標楷體", "Noto Sans TC", serif;
-    --radius-lg: 12px;
-    --radius-md: 8px;
+    --radius-lg: 8px;
+    --radius-md: 6px;
     --radius-sm: 4px;
-    --shadow: 0 4px 15px rgba(44, 44, 44, 0.05);
-    --paper-grad: linear-gradient(135deg, #FAF6F0 0%, #EFE7DC 100%);
-    --paper-dot: rgba(43, 76, 89, 0.06);
-    --paper-dot-0: rgba(43, 76, 89, 0);
-    --paper-dot-faint: rgba(43, 76, 89, 0.04);
-    --paper-dot-faint-0: rgba(43, 76, 89, 0);
-    --panel-bg: #FFFFFF;
+    --shadow: 0 3px 12px rgba(60, 50, 40, 0.08);
+    --paper-grad: linear-gradient(140deg, #FCF8F1 0%, #F0E9DC 100%);
+    --paper-dot: rgba(120, 100, 70, 0.10);
+    --paper-dot-0: rgba(120, 100, 70, 0);
+    --paper-dot-faint: rgba(120, 100, 70, 0.07);
+    --paper-dot-faint-0: rgba(120, 100, 70, 0);
+    --panel-bg: rgba(255, 255, 255, 0.66);
     --tape-display: block;
+    --tape-color: rgba(150, 170, 140, 0.34);
     --photo-frame-bg: #FFFFFF;
-    --photo-frame-border: 1px solid #D2C9B9;
-    --photo-frame-pad: 8px 8px 20px 8px;
+    --photo-frame-border: 1px solid #DCD2BE;
+    --photo-frame-pad: 7px 7px 18px 7px;
     --title-family: var(--font-kai);
-    --title-spacing: normal;
+    --title-spacing: 0.03em;
     --title-weight: bold;
 }
 
@@ -3959,53 +3990,22 @@ body.style-doodle .day-date {
 /* --------------------------------------------------------------------------
    6. 拼貼手帳風 — 斑點再生紙、標楷手寫感、紙膠帶與拍立得
    -------------------------------------------------------------------------- */
-body.style-scrapbook {
-    --paper-base: #F7F2E5;
-    --bg-screen: #F2EDE1;
-    --primary: #C2703F;
-    --primary-light: #F7EDE3;
-    --secondary: #4A4038;
-    --secondary-light: #EDE5D6;
-    --accent: #7B9A6D;
-    --text-main: #33302A;
-    --text-muted: #6E655A;
-    --border-color: #D5CBB6;
-    --radius-lg: 6px;
-    --radius-md: 5px;
-    --radius-sm: 3px;
-    --shadow: 0 2px 8px rgba(74, 64, 56, 0.10);
-    --paper-grad: linear-gradient(150deg, #FBF7ED 0%, #F1EADA 100%);
-    /* 較深、較密的斑點 = 再生紙的雜質顆粒感 */
-    --paper-dot: rgba(120, 100, 70, 0.13);
-    --paper-dot-0: rgba(120, 100, 70, 0);
-    --paper-dot-faint: rgba(120, 100, 70, 0.09);
-    --paper-dot-faint-0: rgba(120, 100, 70, 0);
-    --panel-bg: rgba(255, 255, 255, 0.62);
-    --tape-display: block;          /* 手帳一定要有紙膠帶 */
-    --tape-color: rgba(150, 170, 140, 0.38);
-    --photo-frame-bg: #FFFFFF;
-    --photo-frame-border: 1px solid #DCD2BE;
-    --photo-frame-pad: 7px 7px 18px 7px;
-    --title-family: var(--font-kai);
-    --title-spacing: 0.05em;
-    --title-weight: bold;
-}
 
 /* 手帳的內容是直接寫在紙上的，盒子不要太「實」，用半透明貼上去的感覺 */
-body.style-scrapbook .info-card,
-body.style-scrapbook .card-detail-box,
-body.style-scrapbook .info-hotel-card,
-body.style-scrapbook .day-timeline {
+body.style-washi .info-card,
+body.style-washi .card-detail-box,
+body.style-washi .info-hotel-card,
+body.style-washi .day-timeline {
     background-color: var(--panel-bg) !important;
     border: 1px solid var(--border-color) !important;
 }
 
-body.style-scrapbook .page-header-container,
-body.style-scrapbook .day-header {
+body.style-washi .page-header-container,
+body.style-washi .day-header {
     border-bottom: 2px solid var(--secondary) !important;
 }
 
-body.style-scrapbook .info-section-title {
+body.style-washi .info-section-title {
     border-bottom-style: dashed !important;
 }
 
@@ -4074,7 +4074,7 @@ body.style-slate .day-header {
    側邊欄配合新風格
    -------------------------------------------------------------------------- */
 body.style-doodle .sidebar   { background-color: #F2F9FD; }
-body.style-scrapbook .sidebar{ background-color: #FBF7ED; }
+body.style-washi .sidebar{ background-color: #FBF7ED; }
 body.style-slate .sidebar    { background-color: #EEF3F8; }
 
 
@@ -4316,22 +4316,22 @@ body.style-doodle .gallery-tile-img {
 body.style-doodle .gallery-tile-name { font-size: 10px; }
 
 /* --- 拼貼手帳風：圓形剪貼，四欄密排，像貼上去的照片 --- */
-body.style-scrapbook .day-gallery-grid {
+body.style-washi .day-gallery-grid {
     grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
     gap: 7px;
 }
 
-body.style-scrapbook .gallery-tile-img {
+body.style-washi .gallery-tile-img {
     border-radius: 50%;                       /* 圓形裁切 = 手帳的招牌手法 */
     border: 3px solid #FFFFFF;
     box-shadow: 0 2px 6px rgba(74, 64, 56, 0.18);
 }
 
-body.style-scrapbook .gallery-tile:nth-child(odd)  { transform: rotate(-1.5deg); }
-body.style-scrapbook .gallery-tile:nth-child(even) { transform: rotate(1.5deg); }
+body.style-washi .gallery-tile:nth-child(odd)  { transform: rotate(-1.5deg); }
+body.style-washi .gallery-tile:nth-child(even) { transform: rotate(1.5deg); }
 
-body.style-scrapbook .gallery-tile-name { font-size: 9px; }
-body.style-scrapbook .gallery-tile-note { font-size: 8px; }
+body.style-washi .gallery-tile-name { font-size: 9px; }
+body.style-washi .gallery-tile-note { font-size: 8px; }
 
 /* --- 灰藍卡片風：扁平圓角卡片，圖文左右排，兩欄 --- */
 body.style-slate .day-gallery-grid {
@@ -4386,12 +4386,12 @@ body.style-slate .gallery-tile-name { font-size: 10px; }
 }
 
 /* 手帳風：改成虛線垂直連接，像手繪的路線 */
-body.style-scrapbook .timeline-travel {
+body.style-washi .timeline-travel {
     position: relative;
     margin: -6px 0 6px 0;
 }
 
-body.style-scrapbook .timeline-travel::before {
+body.style-washi .timeline-travel::before {
     content: "";
     position: absolute;
     left: 4px;
@@ -4400,7 +4400,7 @@ body.style-scrapbook .timeline-travel::before {
     border-left: 2px dashed var(--primary);
 }
 
-body.style-scrapbook .timeline-travel-badge {
+body.style-washi .timeline-travel-badge {
     background-color: transparent;
     border: 1px dashed var(--primary);
     color: var(--primary);
@@ -5090,17 +5090,6 @@ mark.kw {
 
 .book-page { position: relative; }
 
-body.style-scrapbook .book-page {
-    background-image:
-        radial-gradient(ellipse 22% 12% at 6% 4%, rgba(190, 160, 110, 0.16) 0%, rgba(190, 160, 110, 0) 70%),
-        radial-gradient(ellipse 18% 10% at 96% 97%, rgba(150, 175, 140, 0.14) 0%, rgba(150, 175, 140, 0) 70%),
-        radial-gradient(var(--paper-dot) 1.2px, var(--paper-dot-0, rgba(0,0,0,0)) 1.2px),
-        var(--paper-grad) !important;
-    background-size: auto, auto, 16px 16px, 100% 100% !important;
-    background-repeat: no-repeat, no-repeat, repeat, no-repeat !important;
-    background-position: 0 0, 0 0, 0 0, 0 0 !important;
-}
-
 body.style-doodle .book-page {
     background-image:
         radial-gradient(ellipse 26% 13% at 8% 3%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0) 72%),
@@ -5134,8 +5123,8 @@ body.style-ticket .book-page {
 
 body.style-washi .book-page {
     background-image:
-        radial-gradient(ellipse 20% 11% at 4% 3%, rgba(200, 90, 50, 0.07) 0%, rgba(200, 90, 50, 0) 70%),
-        radial-gradient(ellipse 16% 9% at 97% 97%, rgba(43, 76, 89, 0.06) 0%, rgba(43, 76, 89, 0) 70%),
+        radial-gradient(ellipse 20% 11% at 4% 3%, rgba(197, 106, 56, 0.08) 0%, rgba(197, 106, 56, 0) 70%),
+        radial-gradient(ellipse 17% 10% at 97% 97%, rgba(150, 170, 140, 0.10) 0%, rgba(150, 170, 140, 0) 70%),
         radial-gradient(var(--paper-dot) 1.2px, var(--paper-dot-0, rgba(0,0,0,0)) 1.2px),
         var(--paper-grad) !important;
     background-size: auto, auto, 16px 16px, 100% 100% !important;
@@ -5750,13 +5739,18 @@ body.print-plain .book-page {
     border-left: 2px solid var(--secondary);
 }
 
+/* 原本這裡用 🚃 當轉乘標記。emoji 在不同系統長得不一樣、列印是彩色點陣圖，
+   換成跟其他圖示同一套語彙的小方塊記號。 */
 .transit-leg:first-child::after {
-    content: '🚃';
+    content: '';
     position: absolute;
-    left: -18px;
-    top: 0;
-    font-size: 9px;
-    opacity: 0.75;
+    left: -13px;
+    top: 5px;
+    width: 5px;
+    height: 5px;
+    border-radius: 1px;
+    background-color: var(--secondary);
+    opacity: 0.8;
 }
 
 .transit-line {
@@ -5971,20 +5965,33 @@ body.skeleton-timetable.template-detailed .day-page-detailed-a .day-hero-image {
     max-width: none !important;
 }
 
+/* 高度改用 aspect-ratio 而不是寫死的 mm/px。
+   原本固定 74mm 高、object-fit:cover，等於強制把 16:9 的原圖上下裁掉一大塊
+   （紙寬 148.5mm ÷ 74mm ≈ 2:1，比 16:9 還扁）。
+   改成讓照片維持自己的 16:9 比例，滿版切齊紙邊但完整不裁。 */
+/* 「滿版切齊紙邊」與「照片完整不裁」在幾何上是互斥的：負邊界讓照片超出紙面
+   左右各 8mm，而 .book-page 是 overflow:hidden，那超出去的部分一定會被切掉 ——
+   量測顯示容器確實是 16:9、object-fit 也確實是 contain，但看起來還是被裁，
+   原因就在這裡，不是比例算錯。
+   使用者要的是照片完整，所以拿掉負邊界：照片改成佔滿「內容寬度」而不是
+   「紙張寬度」，一樣是頁面頂端的大圖，但左右各留 8mm 白邊，一個像素都不裁。 */
 body.skeleton-timetable.template-detailed:not(.booklet-preview) .day-page-detailed-a .day-hero-image {
-    margin: -30px -30px 14px !important;
-    height: 230px !important;
+    margin: 0 0 14px !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9 !important;
 }
 
 body.skeleton-timetable.template-detailed.booklet-preview .day-page-detailed-a .day-hero-image {
-    margin: -10mm -8mm 10px !important;
-    height: 74mm !important;
+    margin: 0 0 10px !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9 !important;
 }
 
 @media print {
     body.skeleton-timetable.template-detailed .day-page-detailed-a .day-hero-image {
-        margin: -10mm -8mm 10px !important;
-        height: 74mm !important;
+        margin: 0 0 10px !important;
+        height: auto !important;
+        aspect-ratio: 16 / 9 !important;
     }
 }
 
@@ -5993,7 +6000,8 @@ body.skeleton-timetable.template-detailed .day-page-detailed-a .day-hero-image .
     height: 100% !important;
     max-height: none !important;
     aspect-ratio: auto !important;
-    object-fit: cover !important;
+    /* contain 而不是 cover：容器已經是 16:9，照片就不會被裁到 */
+    object-fit: contain !important;
     border-radius: 0 !important;
     border: none !important;
     box-shadow: none !important;
@@ -6360,19 +6368,12 @@ body:not(.paper-texture) .book-page.active {
 
 @media screen {
     /* 一張紙的兩半要貼在一起，中間才看得出摺線 */
+    body.template-detailed.booklet-preview.imposition .book-pages,
     body.booklet-preview.imposition .book-pages {
-        gap: 26px 0 !important;
+        gap: 34px 0 !important;
     }
 
-    body.booklet-preview.imposition .impose-left {
-        border-right: none !important;
-        border-radius: var(--radius-lg) 0 0 var(--radius-lg) !important;
-    }
-
-    body.booklet-preview.imposition .impose-right {
-        border-left: 2px dashed #B9B9B9 !important;
-        border-radius: 0 var(--radius-lg) var(--radius-lg) 0 !important;
-    }
+    /* 圓角與摺線統一由下面「一張紙一個框」那一區負責，這裡不再重複定義 */
 
     /* 「PAGE BREAK (A4)」在拼版模式下是錯的資訊：這兩半是同一張 A4 的左右邊，
        不是兩張 A4。換成「對折後的頁碼」。 */
@@ -6448,3 +6449,1334 @@ body:not(.paper-texture) .book-page.active {
    可行的作法是給封面一個大的 margin-left 把該列的剩餘空間吃掉，
    但這會連帶影響邊框與間距的觀感，等一併決定。 */
 
+
+
+/* ==========================================================================
+   一張紙一個框
+   ==========================================================================
+   實體上「一張橫式 A4 對折 = 兩個 A5 頁面」。畫面上原本有兩種畫法：
+   刷卡攻略與行李清單是整張紙的一個大框，其他頁是兩個各自獨立、中間留空隙的
+   小框 —— 框線寬度、圓角、陰影、中間要不要併全都不一樣，翻起來忽大忽小。
+
+   統一成一種：同一張紙的左右兩半緊貼在一起、共用同一組邊框與陰影，
+   中間畫一條摺線。整張的頁面（sheet-full）本來就是一個框，
+   只要把邊框與陰影對齊、中間補上同一條摺線就一致了。
+   ========================================================================== */
+
+@media screen {
+    /* 一張紙的兩半之間不留空隙，紙與紙之間才留 */
+    body.template-detailed.booklet-preview .book-pages,
+    body.booklet-preview .book-pages {
+        gap: 30px 0 !important;
+    }
+
+    /* 所有紙張共用同一組外框：同樣的陰影、同樣的邊線、同樣的圓角尺寸 */
+    body.template-detailed.booklet-preview .book-page,
+    body.booklet-preview .book-page {
+        box-shadow: 0 3px 14px rgba(0, 0, 0, 0.22) !important;
+        border: 1px solid rgba(0, 0, 0, 0.10) !important;
+        margin-bottom: 0 !important;
+    }
+
+    body.template-detailed.booklet-preview .sheet-left,
+    body.booklet-preview .sheet-left {
+        border-radius: 10px 0 0 10px !important;
+        border-right: none !important;
+    }
+
+    body.template-detailed.booklet-preview .sheet-right,
+    body.booklet-preview .sheet-right {
+        border-radius: 0 10px 10px 0 !important;
+        /* 摺線：跟整張頁面中央那條虛線同一個語彙 */
+        border-left: 1px dashed rgba(0, 0, 0, 0.28) !important;
+    }
+
+    /* 整張紙的頁面（刷卡攻略、行李清單）與單獨一面的頁面：四角同樣圓角 */
+    body.template-detailed.booklet-preview .sheet-full,
+    body.template-detailed.booklet-preview .sheet-solo,
+    body.booklet-preview .sheet-full,
+    body.booklet-preview .sheet-solo {
+        border-radius: 10px !important;
+    }
+
+    /* 整張紙中央的摺線，跟上面兩半之間那條對齊成同一種 */
+    body.booklet-preview .sheet-full {
+        position: relative;
+    }
+
+    body.booklet-preview .sheet-full::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: 0;
+        border-left: 1px dashed rgba(0, 0, 0, 0.28);
+        pointer-events: none;
+        z-index: 4;
+    }
+
+    /* 拼版模式沿用同一套外框，不再另外畫一組 */
+    body.template-detailed.booklet-preview.imposition .impose-left,
+    body.booklet-preview.imposition .impose-left {
+        border-radius: 10px 0 0 10px !important;
+        border-right: none !important;
+    }
+
+    body.template-detailed.booklet-preview.imposition .impose-right,
+    body.booklet-preview.imposition .impose-right {
+        border-radius: 0 10px 10px 0 !important;
+        border-left: 1px dashed rgba(0, 0, 0, 0.28) !important;
+    }
+}
+
+@media screen {
+    /* 雙頁詳細版現在一張紙就是一個框、中間一條摺線，每半邊底下再寫
+       「PAGE BREAK (A4)」是錯的資訊（那兩半是同一張 A4 的左右邊，不是兩張）。
+       頁碼本來就印在角落，這個標記拿掉即可。其他版型不受影響。 */
+    body.template-detailed.booklet-preview:not(.imposition) .book-page::after {
+        content: "" !important;
+    }
+}
+
+
+/* ==========================================================================
+   拆頁後：刷卡攻略與行李清單變成一般的 A5 單頁
+   ==========================================================================
+   原本這兩頁是 297mm（整張橫式 A4）並用兩欄排版。拆成兩個獨立的 A5 頁之後，
+   寬度要回到跟其他頁一樣的 148.5mm、排版也回到單欄，否則它們會繼續霸佔
+   整整一列，拼版的配對就會錯掉。
+   ========================================================================== */
+
+body.template-detailed.booklet-preview #page-cards,
+body.template-detailed.booklet-preview #page-packing,
+body.template-detailed.booklet-preview #page-cards-b,
+body.template-detailed.booklet-preview #page-packing-b {
+    width: 148.5mm !important;
+    padding: 10mm 8mm !important;
+    display: block !important;
+    grid-template-columns: none !important;
+}
+
+body.template-detailed #page-cards.active,
+body.template-detailed #page-packing.active,
+body.template-detailed #page-cards-b.active,
+body.template-detailed #page-packing-b.active {
+    display: block !important;
+    grid-template-columns: none !important;
+}
+
+@media print {
+    body.template-detailed #page-cards,
+    body.template-detailed #page-packing,
+    body.template-detailed #page-cards-b,
+    body.template-detailed #page-packing-b {
+        width: 148.5mm !important;
+        display: block !important;
+        grid-template-columns: none !important;
+        padding: 10mm 8mm !important;
+    }
+
+    /* 兩欄時代留下的欄位指定（grid-column / grid-row）在單欄下沒有意義，
+       留著會讓內容被推到不存在的第二欄去 —— 那正是「實際消費印出來上面
+       一大片空白、表格被切掉」的成因。 */
+    body.template-detailed #page-cards .card-notes-printable,
+    body.template-detailed #page-cards-b .card-notes-printable,
+    body.template-detailed #page-packing .flight-lodging-section,
+    body.template-detailed #page-packing-b .flight-lodging-section {
+        grid-column: auto !important;
+        grid-row: auto !important;
+        margin-top: 0 !important;
+    }
+}
+
+body.template-detailed.booklet-preview #page-cards .card-notes-printable,
+body.template-detailed.booklet-preview #page-cards-b .card-notes-printable,
+body.template-detailed.booklet-preview #page-packing .flight-lodging-section,
+body.template-detailed.booklet-preview #page-packing-b .flight-lodging-section,
+body.template-detailed #page-cards-b.active .card-notes-printable,
+body.template-detailed #page-packing-b.active .flight-lodging-section {
+    grid-column: auto !important;
+    grid-row: auto !important;
+    margin-top: 0 !important;
+}
+
+
+/* ==========================================================================
+   向量圖示
+   ==========================================================================
+   Lucide（ISC 授權）的路徑資料內嵌在 app.js 裡，這裡只管尺寸與對齊。
+   用 currentColor，所以顏色自動跟著各風格的主題色走；線條粗細做成變數，
+   風格之間可以再用「細線／粗線」拉開差異。
+   ========================================================================== */
+
+:root { --icon-stroke: 2; }
+
+.ic {
+    width: 1em;
+    height: 1em;
+    /* 圖示與中文字的視覺重心對齊：純 baseline 會讓圖示看起來偏高 */
+    vertical-align: -0.13em;
+    margin-right: 0.36em;
+    flex: 0 0 auto;
+}
+
+/* 標題類的圖示略大一點，才壓得住中文標題的字重 */
+.page-title .ic { width: 1.05em; height: 1.05em; }
+.info-lead-title .ic,
+.info-section-title .ic,
+.timeline-title .ic,
+.day-gallery-title .ic,
+.day-tickets-title .ic { width: 1em; height: 1em; }
+
+/* 各風格的線條粗細：這是骨架之外最省成本的差異來源 */
+body.style-washi     { --icon-stroke: 1.7; }
+
+/* ==========================================================================
+   極簡風格（mono）
+   ==========================================================================
+   其他五種風格的層次全部靠「紙色 ＋ 色塊 ＋ 邊框」堆出來，這在彩色列印很好
+   看，但影印或黑白印出來會糊成一團 —— 目前沒有任何一個風格是為黑白設計的。
+   這一種補上那個空缺：純白紙、零邊框，層次只靠字級、字重與細灰線。
+   也因此它最省墨，而且不依賴任何 webfont。
+
+   原則：
+     · 沒有卡片框，只有分隔線；標題靠字級與字重站出來
+     · 主色只用在一個地方（關鍵字標記），其餘全是中性灰階
+     · 數字一律等寬（tabular-nums），時間欄才對得齊
+   ========================================================================== */
+body.style-mono {
+    --paper-base: #FFFFFF;
+    --bg-screen: #F4F5F6;
+    --primary: #16181A;
+    --primary-light: #F1F2F3;
+    --secondary: #16181A;
+    --secondary-light: #F1F2F3;
+    --accent: #8A6E4B;
+    --text-main: #16181A;
+    --text-muted: #7A8085;
+    --border-color: #E4E7E9;
+    --font-kai: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --radius-lg: 0px;
+    --radius-md: 0px;
+    --radius-sm: 0px;
+    --shadow: none;
+    /* 預設純白（底紋開關預設是關的，全域規則會把 background-image 拿掉）。
+       使用者若真的勾了「紙張底紋」，這裡給一層極淡的中性顆粒 —— 不給的話
+       那個勾選框對極簡風格會變成按了沒反應。 */
+    --paper-grad: linear-gradient(0deg, #FFFFFF 0%, #FCFCFD 100%);
+    --paper-dot: rgba(22, 24, 26, 0.045);
+    --paper-dot-0: rgba(22, 24, 26, 0);
+    --paper-dot-faint: rgba(22, 24, 26, 0.03);
+    --paper-dot-faint-0: rgba(22, 24, 26, 0);
+    --panel-bg: #FFFFFF;
+    --tape-display: none;
+    --photo-frame-bg: #FFFFFF;
+    --photo-frame-border: none;
+    --photo-frame-pad: 0;
+    --title-family: var(--font-kai);
+    --title-spacing: 0.01em;
+    --title-weight: 300;
+    --icon-stroke: 1.4;
+}
+
+/* 盒子一律拆掉，只留一條上緣細線當分隔 */
+body.style-mono .info-card,
+body.style-mono .card-detail-box,
+body.style-mono .info-hotel-card,
+body.style-mono .day-timeline,
+body.style-mono .day-tickets,
+body.style-mono .cover-meta {
+    background: none !important;
+    border: none !important;
+    border-top: 1px solid var(--border-color) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* 小標改成字距拉開的灰色標籤，不搶主標的位置 */
+body.style-mono .info-card h4,
+body.style-mono .day-tickets h4,
+body.style-mono .timeline-title,
+body.style-mono .day-rail-title {
+    font-size: 9px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.24em !important;
+    color: var(--text-muted) !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* 主標：大而細，靠字級撐場面 */
+body.style-mono .day-title,
+body.style-mono .page-title {
+    font-weight: 300 !important;
+    letter-spacing: 0.01em !important;
+}
+
+body.style-mono .page-header-container,
+body.style-mono .day-header {
+    border-bottom: 1.5px solid var(--text-main) !important;
+}
+
+/* DAY 徽章：不用色塊，改成灰色小字 */
+body.style-mono .day-date {
+    background: none !important;
+    color: var(--text-muted) !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+body.style-mono .day-num { font-size: 10px !important; font-weight: 500 !important; letter-spacing: 0.22em !important; }
+
+/* 時間、金額、頁碼都對齊 */
+body.style-mono .timeline-time,
+body.style-mono .day-rail-time,
+body.style-mono .transit-time,
+body.style-mono .print-table td,
+body.style-mono .page-number {
+    font-variant-numeric: tabular-nums;
+}
+
+body.style-mono .timeline-node {
+    background: var(--text-main) !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+body.style-mono .info-alert,
+body.style-mono .info-oath {
+    background: none !important;
+    border: none !important;
+    border-left: 2px solid var(--border-color) !important;
+    border-radius: 0 !important;
+}
+
+/* 照片：無框，黑白印刷時稍微降對比才不會糊成一塊 */
+body.style-mono .day-hero-image,
+body.style-mono .cover-image-container {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+}
+
+body.style-mono .day-hero-image .day-art,
+body.style-mono .cover-image-container img {
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    background: none !important;
+}
+
+body.style-mono .washi-tape { display: none !important; }
+
+body.style-mono .sidebar { background-color: #F4F5F6; }
+
+body.style-mono .day-gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 10px;
+}
+body.style-mono .gallery-tile-img {
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+}
+
+body.style-ticket    { --icon-stroke: 2.2; }
+body.style-doodle    { --icon-stroke: 2.4; }
+body.style-slate     { --icon-stroke: 1.5; }
+
+/* 列印：向量圖示本來就印得銳利，只要確保顏色不被瀏覽器省略 */
+@media print {
+    .ic {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+
+
+/* 選圖視窗的上傳／拖放區 */
+.photo-dropzone {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px;
+    margin-bottom: 14px;
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-md);
+    background-color: var(--primary-light);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.photo-dropzone.is-over {
+    border-color: var(--primary);
+    background-color: var(--secondary-light, var(--primary-light));
+}
+
+.photo-dropzone-hint {
+    font-size: 9.5pt;
+    color: var(--text-muted);
+}
+
+
+/* ==========================================================================
+   紙色的最終裁決
+   ==========================================================================
+   實測：預覽模式下所有版型的紙都變成純白，雙頁詳細版連列印也是白的 ——
+   各風格的 --paper-base（#F7F3EC / #F2E7CF / #C6D3E0…）完全沒有出現。
+   原因是檔案中段有好幾條 `body.template-X.booklet-preview .book-page {
+   background-color:#FFFFFF !important }`，專一性是三個 class，
+   把後面比較單純的 `.book-page` 規則整個蓋掉。
+
+   這裡用「html + body 兩個屬性選擇器」把專一性拉到四段，成為最後裁決者。
+   寫法看起來繞，但比回頭去改中段那十幾條各有用途的白底規則安全得多 ——
+   那些規則有些是給非紙張元素用的，逐一判斷風險高。
+   ========================================================================== */
+
+html body[class][class] .book-page,
+html body[class][class] .book-page.active {
+    background-color: var(--paper-base, #FFFFFF) !important;
+}
+
+/* 「列印用純白底」仍然要能壓過紙色，所以再高一段 */
+html body[class][class].print-plain .book-page,
+html body[class][class].print-plain .book-page.active {
+    background-color: #FFFFFF !important;
+}
+
+@media print {
+    html body[class][class] .book-page,
+    html body[class][class] .book-page.active {
+        background-color: var(--paper-base, #FFFFFF) !important;
+    }
+
+    html body[class][class].print-plain .book-page,
+    html body[class][class].print-plain .book-page.active {
+        background-color: #FFFFFF !important;
+    }
+}
+
+
+/* ==========================================================================
+   互動網頁：刷卡攻略與行李清單回到原本「一頁兩欄」的樣子
+   ==========================================================================
+   紙上必須拆成兩個 A5 才折得對（見 app.js「14b. 把橫跨整張紙的頁面拆成兩頁」），
+   但在互動網頁上沒有折頁這回事，硬拆成兩張卡片反而讓刷卡攻略跟行李清單
+   看起來跟改版前完全不一樣、也和其他頁的節奏對不上。
+   互動模式下把主頁與拆出來的 B 頁併排成一個框、中間一條分隔線，
+   看起來就跟原本的兩欄版面一樣；預覽與列印仍然是兩個獨立的 A5 頁。
+   ========================================================================== */
+
+body.template-detailed:not(.booklet-preview) #page-cards.active,
+body.template-detailed:not(.booklet-preview) #page-packing.active {
+    flex: 1 1 50% !important;
+    width: 50% !important;
+    border-radius: var(--radius-lg) 0 0 var(--radius-lg) !important;
+    border-right: none !important;
+}
+
+body.template-detailed:not(.booklet-preview) #page-cards-b.active,
+body.template-detailed:not(.booklet-preview) #page-packing-b.active {
+    flex: 1 1 50% !important;
+    width: 50% !important;
+    border-radius: 0 var(--radius-lg) var(--radius-lg) 0 !important;
+    border-left: 1px dashed var(--border-color) !important;
+}
+
+/* B 頁在互動模式下不需要再重複一次大標題（左半邊已經有了），
+   但仍然保留它的小標，讓人知道右半邊在講什麼 */
+body.template-detailed:not(.booklet-preview) #page-cards-b.active .page-description,
+body.template-detailed:not(.booklet-preview) #page-packing-b.active .page-description {
+    display: none !important;
+}
+
+@media (max-width: 900px) {
+    body.template-detailed:not(.booklet-preview) #page-cards.active,
+    body.template-detailed:not(.booklet-preview) #page-packing.active,
+    body.template-detailed:not(.booklet-preview) #page-cards-b.active,
+    body.template-detailed:not(.booklet-preview) #page-packing-b.active {
+        flex: 1 1 100% !important;
+        width: 100% !important;
+        border-radius: var(--radius-lg) !important;
+        border-left: 1px solid var(--border-color) !important;
+        border-right: 1px solid var(--border-color) !important;
+    }
+}
+
+
+/* ==========================================================================
+   拆頁之後，刷卡攻略與行李清單中央那條「對折參考線」要拿掉
+   ==========================================================================
+   那條線是在「這兩頁橫跨整張 A4、中央就是摺線」的年代畫的。現在它們各自
+   是一個獨立的 A5 頁，中央不再有摺線，那條虛線就變成一條莫名其妙穿過
+   內容的線。摺線改由「一張紙一個框」那一區負責，畫在兩個半頁之間。
+   ========================================================================== */
+
+body.template-detailed.booklet-preview #page-cards::before,
+body.template-detailed.booklet-preview #page-packing::before,
+body.template-detailed #page-cards.active::before,
+body.template-detailed #page-packing.active::before,
+body.template-detailed #page-cards-b::before,
+body.template-detailed #page-packing-b::before {
+    content: none !important;
+    display: none !important;
+}
+
+@media print {
+    body.template-detailed #page-cards::before,
+    body.template-detailed #page-packing::before,
+    body.template-detailed #page-cards-b::before,
+    body.template-detailed #page-packing-b::before {
+        content: none !important;
+        display: none !important;
+    }
+}
+
+
+/* ==========================================================================
+   成品細修（依實際列印出來的 PDF 調整）
+   ========================================================================== */
+
+/* --- 1. 長標題不要撐開日期徽章 ---
+   「臨空城 Outlet 最後掃貨 & 滿載而歸 (景點行程)」在 A5 頁寬下會折成兩行，
+   而 .day-header 是 align-items:center 的 flex，第二行一出現整個列高就變高，
+   DAY 徽章跟著被撐大、上下位置也跑掉。
+   徽章改成靠上對齊、不參與伸縮；標題允許縮一點字級把兩行收成一行。 */
+.day-header { align-items: flex-start; }
+
+.day-date {
+    flex: 0 0 auto;
+    align-self: flex-start;
+}
+
+body.template-detailed .day-title {
+    font-size: clamp(15px, 1.35vw + 6px, 20px);
+    line-height: 1.25;
+    text-wrap: balance;
+}
+
+@media print {
+    body.template-detailed .day-title {
+        font-size: 15.5px !important;
+        line-height: 1.25 !important;
+    }
+}
+
+/* --- 2. 補頁的橫線要鋪滿整頁 ---
+   行前筆記／集章頁印出來只有 6 條線、下面一大片空白，等於補了一頁卻不能寫。
+   讓書寫區長到紙緣，才是真的「可以寫東西的一頁」。 */
+body.booklet-preview .spread-filler .filler-lines,
+body.booklet-preview .spread-filler .blank-stamp-area {
+    min-height: 155mm !important;
+    height: auto !important;
+}
+
+@media print {
+    .spread-filler .filler-lines,
+    .spread-filler .blank-stamp-area {
+        min-height: 155mm !important;
+        height: auto !important;
+    }
+}
+
+/* --- 3. 航班與住宿：兩個小框改成上下堆疊並長高 ---
+   拆頁之後這一頁只有兩個小方塊、下面三分之二是空的。這兩塊本來就是要用手
+   填的（時間、機場、航司、班機、住宿地址），給它們高度才寫得下。 */
+body.template-detailed #page-packing-b .flight-lodging-section {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+}
+
+body.template-detailed #page-packing-b .flight-lodging-section > .info-card {
+    flex: 1 1 auto !important;
+    min-height: 52mm !important;
+}
+
+@media print {
+    body.template-detailed #page-packing-b .flight-lodging-section > .info-card {
+        min-height: 60mm !important;
+    }
+}
+
+/* 小節大標旁的「還原成預設」鈕 */
+.info-lead-title.has-reset { position: relative; padding-right: 62px; }
+
+.section-reset {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 9.5px;
+    line-height: 1;
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 1px dashed var(--border-color);
+    background-color: var(--panel-bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.info-lead-title.has-reset:hover .section-reset { opacity: 1; }
+
+/* 行李額度：航空公司下拉與「以官網為準」註記 */
+.info-section-title.has-preset {
+    position: relative;
+    padding-right: 130px;
+}
+
+.baggage-preset {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 9.5px;
+    padding: 2px 4px;
+    max-width: 126px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background-color: var(--panel-bg);
+    color: var(--text-muted);
+    font-family: inherit;
+}
+
+.baggage-note {
+    font-size: 8.5px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    padding: 3px 0 2px;
+    border-top: 1px dotted var(--border-color);
+    margin-top: 3px;
+}
+
+
+/* ==========================================================================
+   列印時每張紙兩頁：改用 flex，不再用 float ＋ 強制斷頁
+   ==========================================================================
+   雙頁詳細版列印時是兩個 148.5mm 的 A5 併成一張橫式 A4。原本的做法是
+   float:left 讓兩頁併排，再用 page-break-after 每兩頁斷一次紙。這個做法
+   有兩個要命的地方：
+
+   1）.book-page 不是 .book-pages 的直接子元素，它們分散在
+      #dynamic-day-pages、#dynamic-info-pages、#dynamic-shopping-pages、
+      #dynamic-custom-pages⋯⋯這些 wrapper 裡。wrapper 是一般的 block，
+      float 碰到新的 wrapper 會怎麼排，各家瀏覽器的答案不一樣。
+
+   2）float 元素的強制斷頁，Chromium 直接忽略、WebKit 會照做。所以同一份
+      CSS 在無頭 Chromium 產的 PDF 完全正常，在 Safari 卻會出現「半張紙
+      空白」「整張紙全白」，而且是不規則的 —— 使用者實際印出來 22 張紙裡
+      有 2 張全白、5 張只印半張，正是這個。
+
+   拼版模式（騎馬釘）從來沒有這個問題，因為它用的是 flex-wrap，而且完全
+   不下強制斷頁 —— 靠的是「一列剛好 297mm、一列剛好 210mm 高」的幾何。
+   使用者也證實了拼版列印是正常的。
+
+   所以這裡把一般列印模式改成跟拼版一樣：wrapper 全部 display:contents
+   讓版面看不見它們，.book-pages 變成 flex-wrap 容器，每一列自然就是一張
+   紙。沒有 float、沒有強制斷頁，也就沒有引擎差異。
+   （順帶讓列印跟預覽用同一套排版邏輯，兩邊長得一樣。）
+   ========================================================================== */
+@media print {
+    body.template-detailed #dynamic-toc-page,
+    body.template-detailed #dynamic-day-pages,
+    body.template-detailed #dynamic-info-pages,
+    body.template-detailed #dynamic-shopping-pages,
+    body.template-detailed #dynamic-custom-pages,
+    body.template-detailed #dynamic-backcover {
+        display: contents !important;
+    }
+
+    body.template-detailed .book-pages {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-content: flex-start !important;
+        width: 297mm !important;
+    }
+
+    body.template-detailed .book-page {
+        float: none !important;
+        flex: 0 0 148.5mm !important;
+    }
+
+    /* flex 版面靠幾何換紙，任何強制斷頁都只會多切出空白紙。
+       .sheet-break 只留給 JS 判斷用，不再產生斷頁。 */
+    body.template-detailed .book-page,
+    body.template-detailed #dynamic-custom-pages .book-page,
+    body.template-detailed #page-cards,
+    body.template-detailed #page-packing,
+    body.template-detailed #page-cards-b,
+    body.template-detailed #page-packing-b {
+        page-break-before: auto !important;
+        page-break-after: auto !important;
+        break-before: auto !important;
+        break-after: auto !important;
+    }
+}
+
+
+/* ==========================================================================
+   互動模式：一節只剩一頁時，不要撐成整頁寬
+   ==========================================================================
+   .info-page.active 用的是 flex: 1 1 calc(50% - 10px) —— flex-grow 是 1，
+   所以當某一節只有一頁（沒有續頁，例如它剛好是最後一頁）時，那一頁會獨佔
+   一列並「長大」到整列寬度，看起來就跟其他頁完全不同尺寸。
+   使用者選了台灣虎航之後版面突然變成整版，就是因為文字變長讓分頁點位移，
+   剛好讓某一節變成單獨一頁。
+   把 flex-grow 關掉並補上 max-width，單獨一頁就會安分地待在左半邊。
+   購物清單與拆頁出來的 B 頁同理。
+   ========================================================================== */
+
+body.template-detailed:not(.booklet-preview) .info-page.active,
+body.template-detailed:not(.booklet-preview) .shopping-page.active {
+    flex-grow: 0 !important;
+    max-width: calc(50% - 10px);
+}
+
+@media (max-width: 900px) {
+    body.template-detailed:not(.booklet-preview) .info-page.active,
+    body.template-detailed:not(.booklet-preview) .shopping-page.active {
+        max-width: 100% !important;
+    }
+}
+
+
+/* ==========================================================================
+   骨架：雜誌（editorial）
+   ==========================================================================
+   現有三個骨架動的都是「資訊怎麼排」，照片始終是一個有框的方塊、標題始終
+   貼在左上角。這一個換掉的是那兩件事：
+
+     圖頁  照片切齊四個紙邊（滿版出血），標題壓在照片下緣反白，日期變成
+           標題上方的小字。翻開的第一眼是場景，不是一份表格。
+     文頁  景點簡介改雙欄流動，拿掉所有卡片框，只用字級與一條細線分層。
+
+   取捨：滿版出血一定會裁到照片（照片比例與紙不同時，超出的部分被
+   overflow:hidden 切掉）。其他骨架為了不裁採用的是「完整顯示、留白邊」，
+   這一個刻意反過來 —— 想要雜誌感就得接受裁切，兩者幾何上互斥。
+
+   單頁版與四折頁的每日行程本來就只有一頁，套上這個骨架就是提案裡
+   「一頁講完一天」的樣子；雙頁詳細版維持兩頁，兩頁都吃雜誌處理。
+   ========================================================================== */
+
+/* --- 圖頁：滿版照片 ＋ 壓在照片上的標題 --- */
+body.skeleton-editorial.template-detailed .day-page-detailed-a {
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+/* 照片要吃掉紙面上緣的 58%，前提是它的每一層祖先都有「確定的高度」。
+   .book-page 是固定 210mm 沒問題，但 .day-layout 預設是 auto —— 高度不確定
+   時 flex-basis 的百分比會退化成 auto，照片就只剩自己的自然高度（實測只佔
+   40%，下面空一大塊）。所以這裡要一路把高度撐滿。 */
+body.skeleton-editorial.template-detailed .day-page-detailed-a {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+body.skeleton-editorial.template-detailed .day-page-detailed-a .day-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+}
+
+/* .day-top-grid 把照片關在裡面，order 跨不出那一層；攤平才排得動。
+   一定要 !important —— 有一條 `.day-top-grid { display: grid !important }`
+   （單一 class）在等著，!important 贏過選擇器權重，少了它整組 order 會失效：
+   照片與側欄還被包在一起當成一個 flex item，標題就被擠到最下面，
+   變成「照片 → 說明 → 標題」這種看不懂的順序。 */
+body.skeleton-editorial.template-detailed .day-page-detailed-a .day-top-grid {
+    display: contents !important;
+}
+
+body.skeleton-editorial.template-detailed .day-page-detailed-a .day-hero-image {
+    order: 1;
+    position: relative;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: none !important;
+    transform: none !important;
+    flex: 0 0 52%;
+    min-height: 0 !important;
+    height: auto !important;
+    /* .day-top-grid .day-hero-image 有一條 max-height:380px !important，
+       把 flex-basis 硬壓成 48%（照片下面就空一塊）。這裡要明確解掉。 */
+    max-height: none !important;
+    overflow: hidden !important;
+}
+
+body.skeleton-editorial.template-detailed .day-page-detailed-a .day-hero-image .day-art {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    aspect-ratio: auto !important;
+    /* 這裡是刻意用 cover：雜誌感的前提就是照片填滿版面 */
+    object-fit: cover !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+/* 標題放在照片「下面」的紙上，不壓在照片上。
+   第一版是黑色漸層條壓在照片下緣 —— 兩個問題：
+     · 那條黑色橫幅把照片下緣整片蓋掉，照片最好看的部分常常就在那裡
+     · 它靠 margin-top:-22% 往上疊，而百分比邊界是換算「寬度」的，
+       視窗一寬那個負值就爆掉，標題會飛到照片中央、下面的文字跟著疊上去
+       （預覽時看到的錯位就是這個）
+   改成照片滿版之後直接接標題，中間一條細線分隔。照片一個像素都不被蓋到，
+   排版也不再跟視窗寬度綁在一起。 */
+body.skeleton-editorial.template-detailed .day-page-detailed-a .day-header {
+    order: 2;
+    position: relative;
+    margin: 0 !important;
+    padding: 14px 22px 10px !important;
+    border: none !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    background: none;
+    display: block;
+    flex: none;
+}
+
+/* 日期變成標題上方那行拉開字距的小字（雜誌的 eyebrow） */
+body.skeleton-editorial.template-detailed .day-page-detailed-a .day-header .day-date {
+    background: none !important;
+    color: var(--text-muted) !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    display: block;
+    margin-bottom: 3px;
+}
+
+body.skeleton-editorial.template-detailed .day-page-detailed-a .day-header .day-num,
+body.skeleton-editorial.template-detailed .day-page-detailed-a .day-header .day-calendar {
+    display: inline;
+    font-size: 9px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.28em !important;
+    color: var(--text-muted) !important;
+}
+
+/* 主標大而細 —— 雜誌的重量來自字級，不是色塊 */
+body.skeleton-editorial.template-detailed .day-page-detailed-a .day-header .day-title {
+    color: var(--text-main) !important;
+    font-weight: 300 !important;
+    font-size: 22px !important;
+    line-height: 1.22 !important;
+    letter-spacing: 0.01em !important;
+    margin: 0 !important;
+    text-shadow: none;
+}
+
+body.skeleton-editorial.template-detailed .day-page-detailed-a .washi-tape { display: none !important; }
+
+body.skeleton-editorial.template-detailed .day-page-detailed-a .day-sidebar {
+    order: 3;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 14px 22px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+}
+
+/* 資訊區也拆框，跟雜誌內頁一致 */
+body.skeleton-editorial.template-detailed .day-page-detailed-a .info-card,
+body.skeleton-editorial.template-detailed .day-page-detailed-a .day-tickets {
+    background: none !important;
+    border: none !important;
+    border-top: 1px solid var(--border-color) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 8px 0 0 !important;
+}
+
+body.skeleton-editorial.template-detailed .day-page-detailed-a .info-card h4,
+body.skeleton-editorial.template-detailed .day-page-detailed-a .day-tickets h4 {
+    font-size: 9px !important;
+    letter-spacing: 0.24em !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 5px !important;
+}
+
+body.skeleton-editorial.template-detailed .day-page-detailed-a .page-number {
+    right: 22px;
+}
+
+/* 文頁的頁首也要跟圖頁同一套語彙，否則翻開一個跨頁會看到兩種標題樣式：
+   左邊是雜誌的細體大標，右邊還是方塊徽章 —— 那就不像同一篇文章了。 */
+body.skeleton-editorial.template-detailed .day-page-detailed-b .day-header {
+    border-bottom: 1px solid var(--border-color) !important;
+    padding-bottom: 8px !important;
+    display: block !important;
+}
+
+body.skeleton-editorial.template-detailed .day-page-detailed-b .day-date {
+    background: none !important;
+    color: var(--text-muted) !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    display: block;
+    margin-bottom: 3px;
+}
+
+body.skeleton-editorial.template-detailed .day-page-detailed-b .day-num,
+body.skeleton-editorial.template-detailed .day-page-detailed-b .day-calendar {
+    display: inline;
+    font-size: 9px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.28em !important;
+    color: var(--text-muted) !important;
+}
+
+body.skeleton-editorial.template-detailed .day-page-detailed-b .day-title {
+    color: var(--text-main) !important;
+    font-weight: 300 !important;
+    font-size: 22px !important;
+    line-height: 1.22 !important;
+    letter-spacing: 0.01em !important;
+    margin: 0 !important;
+}
+
+/* --- 文頁：雙欄流動、無框 --- */
+body.skeleton-editorial.template-detailed .day-page-detailed-b .day-timeline {
+    background: none !important;
+    border: none !important;
+    padding-left: 0 !important;
+    columns: 2;
+    column-gap: 16px;
+    column-rule: 1px solid var(--border-color);
+}
+
+body.skeleton-editorial.template-detailed .day-page-detailed-b .timeline-item {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    display: block;
+    padding-bottom: 11px;
+}
+
+/* 雙欄下沒有空間畫時間軸的點與線，改用標題本身的層次 */
+body.skeleton-editorial.template-detailed .day-page-detailed-b .timeline-node,
+body.skeleton-editorial.template-detailed .day-page-detailed-b .timeline-travel {
+    display: none !important;
+}
+
+body.skeleton-editorial.template-detailed .day-page-detailed-b .timeline-desc h5 {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    margin: 1px 0 2px !important;
+}
+
+body.skeleton-editorial.template-detailed .day-page-detailed-b .timeline-time {
+    font-size: 8px !important;
+    letter-spacing: 0.16em !important;
+    color: var(--text-muted) !important;
+    font-variant-numeric: tabular-nums;
+}
+
+body.skeleton-editorial.template-detailed .day-page-detailed-b .timeline-title {
+    columns: 1;
+    font-size: 9px !important;
+    letter-spacing: 0.24em !important;
+    color: var(--text-muted) !important;
+}
+
+
+/* ==========================================================================
+   骨架：路線圖（route）
+   ==========================================================================
+   把「今日路線」從配角變成主角：一條粗軸線縱貫文頁，景點掛在軸的左右兩側
+   交錯，站與站之間的移動時間就標在軸上。現場想確認「接下來往哪」的時候，
+   掃一眼就知道，不必讀完整段文字。
+
+   結構上動到的只有文頁的時間軸，圖頁維持標準版。
+   代價：一站的寬度只剩不到半頁，景點說明會被壓成兩三行，寫太長會被切掉 ——
+   這個骨架適合行程排得緊、每站只需要關鍵字的日子。
+
+   左右交錯用的是 app.js 標上去的 .stop-odd / .stop-even，不是 :nth-child ——
+   .day-timeline 裡面還夾著 .timeline-title 與 .timeline-travel，用 nth-child
+   數會整組錯開。
+   ========================================================================== */
+body.skeleton-route.template-detailed .day-page-detailed-b .day-timeline {
+    background: none !important;
+    border: none !important;
+    position: relative;
+    padding: 4px 0 0 !important;
+}
+
+/* 中軸。要從標題「下面」才開始畫 ——「景點簡介」那行是 .day-timeline 的
+   第一個孩子，而 ::before 是定位元素，會蓋在未定位的孩子上面，
+   軸線就直接壓過標題的字。所以軸往下讓出標題的高度，
+   標題本身再墊高一層並鋪不透明底，雙保險。 */
+body.skeleton-route.template-detailed .day-page-detailed-b .day-timeline::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 30px;
+    bottom: 0;
+    width: 3px;
+    margin-left: -1.5px;
+    background: var(--secondary);
+    border-radius: 2px;
+    z-index: 1;
+}
+
+body.skeleton-route.template-detailed .day-page-detailed-b .timeline-title {
+    position: relative;
+    z-index: 4;
+    background: var(--paper-base);
+    padding-bottom: 4px;
+}
+
+body.skeleton-route.template-detailed .day-page-detailed-b .timeline-item {
+    display: block;
+    position: relative;
+    padding: 0 0 14px;
+    min-height: 34px;
+}
+
+/* 節點釘在軸上 */
+body.skeleton-route.template-detailed .day-page-detailed-b .timeline-node {
+    position: absolute;
+    left: 50%;
+    top: 3px;
+    width: 11px;
+    height: 11px;
+    margin-left: -5.5px;
+    background: var(--paper-base) !important;
+    border: 3px solid var(--primary) !important;
+    box-shadow: none !important;
+    z-index: 3;
+}
+
+/* 內容交錯掛在兩側 */
+body.skeleton-route.template-detailed .day-page-detailed-b .timeline-desc {
+    width: 43%;
+    position: relative;
+    z-index: 2;
+}
+
+body.skeleton-route.template-detailed .day-page-detailed-b .timeline-item.stop-odd .timeline-desc {
+    margin-right: auto;
+    text-align: right;
+}
+
+body.skeleton-route.template-detailed .day-page-detailed-b .timeline-item.stop-even .timeline-desc {
+    margin-left: auto;
+}
+
+body.skeleton-route.template-detailed .day-page-detailed-b .timeline-desc h5 {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    margin: 0 0 2px !important;
+}
+
+body.skeleton-route.template-detailed .day-page-detailed-b .timeline-time {
+    font-size: 8px !important;
+    letter-spacing: 0.14em !important;
+    color: var(--text-muted) !important;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 移動時間標在軸上，不是靠左 */
+body.skeleton-route.template-detailed .day-page-detailed-b .timeline-travel {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin: -8px 0 6px !important;
+    padding: 0 !important;
+}
+
+body.skeleton-route.template-detailed .day-page-detailed-b .timeline-travel::before {
+    display: none !important;
+}
+
+body.skeleton-route.template-detailed .day-page-detailed-b .timeline-travel-badge {
+    background: var(--paper-base) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-muted) !important;
+    font-size: 8px !important;
+    padding: 1px 6px !important;
+    border-radius: 8px !important;
+    position: relative;
+    z-index: 2;
+}
+
+/* 轉乘明細在半頁寬裡塞不下整排，改成一行一段 */
+body.skeleton-route.template-detailed .day-page-detailed-b .transit-leg {
+    flex-wrap: wrap;
+    font-size: 8px !important;
+}
+
+body.skeleton-route.template-detailed .day-page-detailed-b .timeline-title {
+    text-align: center;
+}
+
+
+/* ==========================================================================
+   預覽要真的等於「印出來的樣子」
+   ==========================================================================
+   .no-print 的東西（刷卡智能決策器、＋加票券、刪除鈕⋯⋯）在列印時是藏起來的，
+   但預覽模式沒有藏 —— 於是預覽算進了一堆紙上根本不會有的高度，內容被
+   overflow:hidden 裁掉，看起來像排版爆掉，實際列印卻完全正常。
+   （實測 #page-cards 在預覽超出 186px、列印 -23px。）
+   預覽的用途就是檢查紙上的結果，所以一律跟著藏。
+   唯一留下的是頁面的「✓列印」開關 —— 那是預覽時還需要用的控制項。
+   ========================================================================== */
+/* 只針對「頁面裡面」的 .no-print。app 的側邊欄與工具列本身也掛著 no-print
+   （它們當然不該印出來），但那是操作介面 —— 一起藏掉的話進了預覽就沒有
+   任何按鈕可以退出來，等於把使用者鎖在裡面。
+   每頁的「✓列印」開關本來就有自己的規則在預覽時收起（預覽時改用側邊欄的
+   清單來排除頁面），這裡不必特別處理。 */
+body.booklet-preview .book-page .no-print {
+    display: none !important;
+}
+
+
+/* ==========================================================================
+   四折頁：刷卡攻略塞不進 74.25mm 的直條
+   ==========================================================================
+   量出來（列印、真實紙張）：頁面 794px 高，內容 78 + 568 + 122 ＋ 上下內距 60
+   = 828px，超出 34px —— 被裁掉的正好是最下面那塊「疊加省錢神技」。
+   四折頁的一欄只有 74.25mm，本來就是四種版型裡最窄的，其他版型不受影響。
+   做法是把這一頁的行距、內距、字級整體收一點，不刪任何內容。
+   ========================================================================== */
+@media print {
+    body.template-fourfold #page-cards .cards-grid {
+        gap: 5px !important;
+    }
+
+    body.template-fourfold #page-cards .card-detail-box {
+        padding: 6px 7px !important;
+        line-height: 1.4 !important;
+    }
+
+    body.template-fourfold #page-cards .card-detail-box li,
+    body.template-fourfold #page-cards .card-detail-box p {
+        margin-bottom: 2px !important;
+    }
+
+    body.template-fourfold #page-cards .info-alert {
+        padding: 6px 8px !important;
+        line-height: 1.4 !important;
+        margin-top: 5px !important;
+    }
+
+    body.template-fourfold #page-cards .page-header-container {
+        margin-bottom: 4px !important;
+    }
+
+    body.template-fourfold #page-cards .page-description {
+        display: none !important;   /* 這一頁最窄，說明文字讓位給實際內容 */
+    }
+}
+
+/* 預覽要看到跟列印一樣的結果，同一組也套一份 */
+body.template-fourfold.booklet-preview #page-cards .cards-grid { gap: 5px !important; }
+body.template-fourfold.booklet-preview #page-cards .card-detail-box { padding: 6px 7px !important; line-height: 1.4 !important; }
+body.template-fourfold.booklet-preview #page-cards .card-detail-box li,
+body.template-fourfold.booklet-preview #page-cards .card-detail-box p { margin-bottom: 2px !important; }
+body.template-fourfold.booklet-preview #page-cards .info-alert { padding: 6px 8px !important; line-height: 1.4 !important; margin-top: 5px !important; }
+body.template-fourfold.booklet-preview #page-cards .page-header-container { margin-bottom: 4px !important; }
+body.template-fourfold.booklet-preview #page-cards .page-description { display: none !important; }
+
+
+/* ==========================================================================
+   標籤膠囊：在景點簡介裡用 [必拍] [必吃] [預約制] 標出重點
+   ==========================================================================
+   整段景點簡介是同一個灰階，走在路上很難一眼抓到重點。方括號寫法會變成一顆
+   有顏色的小膠囊，成為視覺錨點。任何文字都能當標籤，常用的幾個有專屬配色，
+   其餘走中性色 —— 所以使用者要新增自己的分類不必改程式。
+   ========================================================================== */
+.kw-tag {
+    display: inline-block;
+    font-size: 0.82em;
+    font-weight: 700;
+    line-height: 1.35;
+    padding: 0.05em 0.55em;
+    margin: 0 0.35em 0.15em 0;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    vertical-align: 0.06em;
+    /* 中性預設：使用者自創的標籤走這一組 */
+    background: rgba(0, 0, 0, 0.055);
+    color: var(--text-muted);
+    border: 1px solid rgba(0, 0, 0, 0.10);
+}
+
+/* 常用分類的專屬配色。彩色列印一眼分得出來，黑白列印靠邊框深淺與字重也還在。 */
+.kw-tag[data-tag="必拍"],
+.kw-tag[data-tag="拍照"]   { background: #E6F0F7; color: #2B6C97; border-color: #B9D6E8; }
+.kw-tag[data-tag="必吃"],
+.kw-tag[data-tag="美食"]   { background: #FBEDE2; color: #B45A22; border-color: #EBCBAE; }
+.kw-tag[data-tag="必買"],
+.kw-tag[data-tag="購物"]   { background: #F2E9F5; color: #7A4A8C; border-color: #DCC7E3; }
+.kw-tag[data-tag="預約制"],
+.kw-tag[data-tag="需預約"] { background: #FAE6E6; color: #A83A3A; border-color: #EDC3C3; }
+.kw-tag[data-tag="限定"]   { background: #FBF0DA; color: #96702A; border-color: #E8D5A8; }
+.kw-tag[data-tag="免費"]   { background: #E7F2E9; color: #3E7A4C; border-color: #C4DFCB; }
+
+/* 極簡風格不用色塊分層，膠囊改成細外框 */
+body.style-mono .kw-tag {
+    background: none !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color) !important;
+    font-weight: 500;
+}
+
+/* 塗鴉風的語彙是粗黑框，膠囊跟著硬一點 */
+body.style-doodle .kw-tag {
+    border-width: 1.5px;
+    border-color: rgba(26, 26, 26, 0.55);
+}
+
+
+/* ==========================================================================
+   每日底部表格：欄位名稱可以自己改，也可以一鍵換一組
+   ==========================================================================
+   USJ 那天填「早餐／午餐／晚餐」沒有意義，爆買日想記的是戰利品而不是步數。
+   但每天想記什麼只有使用者知道，所以不做成固定模組，而是欄位名稱直接可編輯，
+   再附幾組一鍵套用的起點。下拉選單是 no-print，不會出現在紙上或預覽裡。
+   ========================================================================== */
+.meals-preset-row {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 2px 5px;
+}
+
+.meals-preset {
+    font-family: inherit;
+    font-size: 8.5pt;
+    color: var(--text-muted);
+    background: var(--panel-bg, #FFFFFF);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-sm, 4px);
+    padding: 2px 6px;
+    cursor: pointer;
+    opacity: 0.55;
+    transition: opacity 0.15s ease;
+}
+
+.meals-preset:hover,
+.meals-preset:focus { opacity: 1; }
+
+/* 欄位名稱是可編輯的，給一個很淡的提示讓人知道可以點，但不能搶版面 */
+.meals-head-cell:hover {
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 3px;
+}
+
+
+/* ==========================================================================
+   時間當視覺錨點
+   ==========================================================================
+   景點簡介裡的時間（04:40 – 10:25）本來跟其他內文一樣重，但走在路上最常掃
+   的就是它。用主色與等寬數字獨立出來，一眼就找得到「現在該做哪一段」。
+   ========================================================================== */
+.kw-time {
+    color: var(--primary);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+
+/* 極簡風格不靠顏色分層，時間改用深色 ＋ 等寬字撐出份量 */
+body.style-mono .kw-time {
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+
+/* ==========================================================================
+   手寫空間：把每一頁剩下的白，變成可以動筆的地方
+   ==========================================================================
+   印出來之後每一頁通常還剩 40–60mm 的白，但那是「排版剩下的」不是「刻意留
+   的」—— 沒有橫線、沒有標題，看起來像沒排滿，人不會在那裡動筆。
+   打開「保留手寫空間」之後，那塊白會變成有標題與橫線的書寫區。
+   行數由 fitWritingSpace() 依照那一頁真正剩下的空間算出來（存在 --write-lines），
+   所以短的那天不會被擠爆、長的那天也不會浪費。
+   ========================================================================== */
+.day-writing { display: none; }
+
+body.write-space .day-writing.has-room {
+    display: block;
+    margin-top: 8px;
+}
+
+.day-writing-title {
+    font-size: 8.5pt;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    padding-bottom: 3px;
+    margin-bottom: 0;
+}
+
+/* 橫線用背景畫，不用一堆空 div —— 行高改一個變數就整組跟著變 */
+.day-writing-lines {
+    height: calc(var(--write-lines, 4) * 7mm);
+    background-image: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0,
+        rgba(0, 0, 0, 0) calc(7mm - 1px),
+        var(--border-color) calc(7mm - 1px),
+        var(--border-color) 7mm
+    );
+    border-top: 1px solid var(--border-color);
+}
+
+/* 各風格的手寫區語彙不同：手帳是虛線、極簡是極細灰線、塗鴉是粗一點的實線 */
+body.style-washi .day-writing-lines,
+body.style-ticket .day-writing-lines {
+    background-image: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0,
+        rgba(0, 0, 0, 0) calc(7mm - 1px),
+        var(--border-color) calc(7mm - 1px),
+        var(--border-color) 7mm
+    );
+}
+
+body.style-mono .day-writing-lines {
+    background-image: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0,
+        rgba(0, 0, 0, 0) calc(7mm - 1px),
+        #E4E7E9 calc(7mm - 1px),
+        #E4E7E9 7mm
+    );
+    border-top-color: #16181A;
+}
+
+body.style-doodle .day-writing-lines {
+    background-image: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0,
+        rgba(0, 0, 0, 0) calc(7mm - 1.5px),
+        rgba(26, 26, 26, 0.28) calc(7mm - 1.5px),
+        rgba(26, 26, 26, 0.28) 7mm
+    );
+}
