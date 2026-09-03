@@ -7780,3 +7780,64 @@ body.style-doodle .day-writing-lines {
         rgba(26, 26, 26, 0.28) 7mm
     );
 }
+
+/* ── 每天一個顏色 ────────────────────────────────────────────────
+   整本單調最直接的來源，是三十二頁只有一種顏色。這一段給每一天一個色。
+
+   六個顏色都是從那天的插圖上取下來的（夜裡水面的靛、水管的綠、二年坂的
+   櫻、鹿背的赭、提燈的朱），所以色票跟畫面天生就合，不會出現「配色很潮
+   但跟水彩打架」。
+
+   三個刻意的限制：
+   1. 預設關閉。要 body.day-colors 才生效，關掉就完全回到原樣，DOM 上只
+      剩一個沒有樣式的 data-day-color。
+   2. 只作用在行程頁（.book-page[data-day-color]，只有每日頁會拿到這個
+      屬性）。資訊頁不換色 —— 那些頁在超商常常是印黑白的，後段跟著換色
+      只會讓整本看起來散掉。
+   3. 行程頁本來就要印彩色，所以打開這個不會多花任何印費。
+
+   六個顏色都驗過對白字的對比至少 5:1 —— 日期牌是深底白字，顏色一淺白字
+   就消失。赭色原本取的 #A97529 只有 3.99:1，所以壓深過。 */
+:root {
+    --day-c-1: #2B5170;   /* 靛　道頓堀夜裡的水面 */
+    --day-c-2: #4B7A3E;   /* 綠　任天堂世界的水管 */
+    --day-c-3: #B04F6B;   /* 櫻緋　二年坂的櫻，加深到印得出來 */
+    --day-c-4: #94631F;   /* 赭　奈良小鹿的背（壓深過，原色對白字只有 3.99:1）*/
+    --day-c-5: #B44A28;   /* 朱　大阪街屋的紅燈籠 */
+    --day-c-6: #3B6E6B;   /* 鴨青　留給第六天 */
+}
+.book-page[data-day-color="0"] { --day-c: var(--day-c-1); }
+.book-page[data-day-color="1"] { --day-c: var(--day-c-2); }
+.book-page[data-day-color="2"] { --day-c: var(--day-c-3); }
+.book-page[data-day-color="3"] { --day-c: var(--day-c-4); }
+.book-page[data-day-color="4"] { --day-c: var(--day-c-5); }
+.book-page[data-day-color="5"] { --day-c: var(--day-c-6); }
+
+/* 上色的位置只有四處，而且都是原本就有顏色的東西 —— 換掉顏色而不是加新
+   元素，所以任何風格、骨架、版型都不會因此跑版。 */
+body.day-colors .book-page[data-day-color] .day-date {
+    background-color: var(--day-c) !important;
+}
+body.day-colors .book-page[data-day-color] .day-title {
+    color: var(--day-c) !important;
+}
+body.day-colors .book-page[data-day-color] .day-header {
+    border-bottom-color: var(--day-c) !important;
+}
+body.day-colors .book-page[data-day-color] .time,
+body.day-colors .book-page[data-day-color] .kw-time {
+    color: var(--day-c) !important;
+}
+/* 時間軸的節點也要跟著換。這一點是看了實際畫面才改的：頁首整片藍、
+   節點卻還是橘的，看起來像漏改了一個地方。
+   注意 --primary 沒有被動到 —— 關鍵字標記（必吃／必拍／預約制）全書一律
+   同一個顏色，那是「意思」，不能每天換，換了標記就失去意義。 */
+body.day-colors .book-page[data-day-color] .timeline-node {
+    background-color: var(--day-c) !important;
+    box-shadow: 0 0 0 1.5px var(--day-c) !important;
+}
+/* 時間軸那條線也跟著走，但壓淡 —— 它是背景，不該跟時間搶。 */
+body.day-colors .book-page[data-day-color] .timeline-item:not(:last-child)::after {
+    background-color: var(--day-c) !important;
+    opacity: 0.45;
+}

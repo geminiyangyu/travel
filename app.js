@@ -512,6 +512,7 @@ function __travelAppMain() {
                         </div>
                     </div>
                 `;
+                pageA.dataset.dayColor = index % DAY_COLOR_COUNT;
                 dynamicDayPages.appendChild(pageA);
 
                 // 雙頁詳細版 - Page B: 詳細行程
@@ -540,6 +541,7 @@ function __travelAppMain() {
                         ${writingHtml}
                     </div>
                 `;
+                pageB.dataset.dayColor = index % DAY_COLOR_COUNT;
                 dynamicDayPages.appendChild(pageB);
 
             } else {
@@ -586,6 +588,7 @@ function __travelAppMain() {
                         ${writingHtml}
                     </div>
                 `;
+                pageA.dataset.dayColor = index % DAY_COLOR_COUNT;
                 dynamicDayPages.appendChild(pageA);
             }
         });
@@ -2084,6 +2087,9 @@ function __travelAppMain() {
     // 'scrapbook' 已併入 'washi'（兩者量出來有 6/12 項結構指標一模一樣，
     // 差別只剩 6px 圓角，印在紙上分不出來）。舊的存檔值要對應過去，
     // 否則使用者一開啟就會被打回預設值、風格整個跳掉。
+    // 每天輪一個顏色。色票本身寫在 styles.css（顏色是設計，不是邏輯），
+    // 這裡只標記「這是第幾天」，超過六天就從頭再輪一次。
+    const DAY_COLOR_COUNT = 6;
     const STYLES = ['washi', 'ticket', 'doodle', 'slate', 'mono'];
     const STYLE_ALIASES = { scrapbook: 'washi' };
     const DEFAULT_STYLE = 'washi';
@@ -3304,7 +3310,7 @@ function __travelAppMain() {
     // 那個功能從來不存在。現在訊息指向的是這裡真的有的按鈕。
     const BACKUP_VERSION = 1;
     const BACKUP_SETTINGS = [
-        'travel_style', 'travel_skeleton', 'travel_imposition', 'travel_write_space',
+        'travel_style', 'travel_skeleton', 'travel_imposition', 'travel_write_space', 'travel_day_colors',
         'travel_paper_texture', 'travel_print_plain', 'travel_align_spreads',
         'travel_filler_kind',
     ];
@@ -3467,6 +3473,20 @@ function __travelAppMain() {
         chkWrite.addEventListener('change', () => {
             localStorage.setItem(WRITE_KEY, chkWrite.checked ? '1' : '0');
             apply(chkWrite.checked);
+        });
+    }
+
+    // --- 每天一個顏色 ---
+    // 只是掛一個 class 到 body 上，實際上色全在 CSS。關掉之後 DOM 上只剩下
+    // data-day-color 這個沒有樣式的屬性，等於完全回到原樣。
+    const DAYCOLOR_KEY = 'travel_day_colors';
+    const chkDayColor = document.getElementById('chk-day-colors');
+    if (chkDayColor) {
+        chkDayColor.checked = localStorage.getItem(DAYCOLOR_KEY) === '1';
+        document.body.classList.toggle('day-colors', chkDayColor.checked);
+        chkDayColor.addEventListener('change', () => {
+            localStorage.setItem(DAYCOLOR_KEY, chkDayColor.checked ? '1' : '0');
+            document.body.classList.toggle('day-colors', chkDayColor.checked);
         });
     }
 
